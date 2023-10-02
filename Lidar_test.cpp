@@ -67,21 +67,7 @@ int main() {
     lidar_driver->ascendScanData(nodes, nodes_count);
 
     /// Print numbers
-    for (size_t pos = 0; pos < nodes_count; ++pos) {
-        const auto node = nodes[pos];
-        const float angle_deg = node.angle_z_q14 * 90.f / 16384;
-        const int distance_mm = node.dist_mm_q2 / 4;
-        //radians = angle * pi / 180.0
-        //x = distance * cos(radians)
-        //y = distance * sin(radians)
-        const int quality = node.quality >> SL_LIDAR_RESP_MEASUREMENT_QUALITY_SHIFT;
-        const auto start_node = node.flag & SL_LIDAR_RESP_HQ_FLAG_SYNCBIT ? "Start " : "      ";
-
-        if (quality > 0) {
-            printf("%s Heading: %6.2f°", start_node, angle_deg);
-            printf("\t\tDistance: %4d mm \n", distance_mm);
-        }
-    }
+    print_histogram(nodes, nodes_count);
 
     /// Plot in characters
     plot_histogram(nodes, nodes_count);
