@@ -52,10 +52,11 @@ int main() {
     lidar_driver->startScan(false, true, 0, &scanMode);
     //lidar_driver->startScan(/*force=*/false, /*useTypicalScanMode=*/true);
 
-    size_t nodes_count{ 8192 };
-    sl_lidar_response_measurement_node_hq_t nodes[8192];
+    constexpr const size_t array_size{ 8192 };
+    sl_lidar_response_measurement_node_hq_t nodes[array_size];
 
     /// take only one 360 deg scan and display the result as a histogram
+    size_t nodes_count{ array_size };
     op_result = lidar_driver->grabScanDataHq(nodes, nodes_count);
     if (SL_IS_FAIL(op_result)) {
         fprintf(stderr, "Failed to get scan data from LIDAR \n");
@@ -74,16 +75,16 @@ int main() {
         //x = distance * cos(radians)
         //y = distance * sin(radians)
         const int quality = node.quality >> SL_LIDAR_RESP_MEASUREMENT_QUALITY_SHIFT;
-        const auto flag = node.flag & SL_LIDAR_RESP_HQ_FLAG_SYNCBIT ? "Start " : "      ";
+        const auto start_node = node.flag & SL_LIDAR_RESP_HQ_FLAG_SYNCBIT ? "Start " : "      ";
 
-        printf("%s Heading: %6.2f°", flag, angle_deg);
-        if (quality > 0)
-            printf(",\t\tDistance: %4d mm,\t\tQuality: %d \n", distance_mm, quality);
-        else printf("\n");
+        if (quality > 0) {
+            printf("%s Heading: %6.2f°", start_node, angle_deg);
+            printf("\t\tDistance: %4d mm \n", distance_mm);
+        }
     }
 
     /// Plot in characters
-    //plot_histogram(nodes, nodes_count);
+    plot_histogram(nodes, nodes_count);
 
     /// Stop scan
     lidar_driver->stop();
