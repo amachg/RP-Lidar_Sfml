@@ -21,7 +21,9 @@ using namespace sl;
 int main() {
     ///  Create a LIDAR driver and a communication channel instance.
     auto* lidar_driver = *createLidarDriver();
-    auto com_channel = createSerialPortChannel("/dev/ttyUSB0", 115200);
+
+    //auto com_channel = createSerialPortChannel("/dev/ttyUSB0", 115200);
+    auto com_channel = createSerialPortChannel("\\\\.\\com4", 115200);
 
     /// Make connection to the lidar via the channel.
     auto op_result = lidar_driver->connect(*com_channel);
@@ -66,17 +68,20 @@ int main() {
     /// Print numbers
     for (size_t pos = 0; pos < nodes_count; ++pos) {
         const auto node = nodes[pos];
-        const auto angle_deg = node.angle_z_q14 * 90.f / 16384;
-        const auto distance_m = node.dist_mm_q2 / 4;
+        const float angle_deg = node.angle_z_q14 * 90.f / 16384;
+        const int distance_mm = node.dist_mm_q2 / 4;
         //radians = angle * pi / 180.0
         //x = distance * cos(radians)
         //y = distance * sin(radians)
-        printf("%s Heading: %03.2f, Distance: %08.2f, Quality: %d \n",
-            (node.flag & SL_LIDAR_RESP_HQ_FLAG_SYNCBIT ? "Start " : "      "),
-            angle_deg,
-            distance_m,
-            node.quality >> SL_LIDAR_RESP_MEASUREMENT_QUALITY_SHIFT);
+        const int quality = node.quality >> SL_LIDAR_RESP_MEASUREMENT_QUALITY_SHIFT;
+        const auto flag = node.flag & SL_LIDAR_RESP_HQ_FLAG_SYNCBIT ? "Start " : "      ";
+
+        printf("%s Heading: %6.2f°", flag, angle_deg);
+        if (quality > 0)
+            printf(",\t\tDistance: %4d mm,\t\tQuality: %d \n", distance_mm, quality);
+        else printf("\n");
     }
+
     /// Plot in characters
     //plot_histogram(nodes, nodes_count);
 
