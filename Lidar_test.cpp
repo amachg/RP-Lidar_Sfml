@@ -6,76 +6,66 @@
  * Angular Resolution ≤ 1°
  * Sample Duration 0.125 milliseconds
  * UART @ 115200 bps
- * pre-heat RPLIDAR A1 (Start the scan mode and the scan motor is rotating) for
- * more than 2 minutesto get the best measurement accuracy.
+ * For accuracy, pre-heat for 2' (Start the scan mode and the scan motor is rotating).
  */
 
 #include "../../rplidar_sdk/sdk/include/sl_lidar.h"
-//#include <signal.h>
-
 using namespace sl;
-//using namespace std;
-
 #include "Lidar_test.h"
 
+#ifdef __unix__
+# include <unistd.h>
+#elif defined _WIN32
+# include <windows.h>
+#define sleep(x) Sleep(1000 * (x))
+#endif
+
 int main() {
-    ///  Create a LIDAR driver and a communication channel instance.
-    auto* lidar_driver = *createLidarDriver();
-
-    //auto com_channel = createSerialPortChannel("/dev/ttyUSB0", 115200);
-    auto com_channel = createSerialPortChannel("\\\\.\\com4", 115200);
-
-    /// Make connection to the lidar via the channel.
-    auto op_result = lidar_driver->connect(*com_channel);
-    if (SL_IS_OK(op_result)) {
-        sl_lidar_response_device_info_t deviceInfo;
-        op_result = lidar_driver->getDeviceInfo(deviceInfo);
-        if (SL_IS_OK(op_result)) {
-            /// print out the device firmware and hardware version number.
-            printf("\nModel: %d, Firmware Version: %d.%d, Hardware Version: %d\n",
-                deviceInfo.model,
-                deviceInfo.firmware_version >> 8,
-                deviceInfo.firmware_version & 0xffu,
-                deviceInfo.hardware_version);
-        }
+    // Setup Lidar driver, serial data channel and check health status.
+    ILidarDriver* lidar_driver{};
+    if ( !setup(lidar_driver) ) {
+        delete lidar_driver;
+        return false;
     }
-    /// Retrieve the health status
-    sl_lidar_response_device_health_t healthinfo;
-    op_result = lidar_driver->getHealth(healthinfo);
-    if (SL_IS_OK(op_result) && healthinfo.status == SL_LIDAR_STATUS_OK)
-        printf("Lidar health status is OK.\n");
-
 
     /// Start scan
-    lidar_driver->setMotorSpeed();
+    lidar_driver->setMotorSpeed();//setMotorSpeed(pwm);
     LidarScanMode scanMode;
-    lidar_driver->startScan(false, true, 0, &scanMode);
     //lidar_driver->startScan(/*force=*/false, /*useTypicalScanMode=*/true);
+    if (SL_IS_FAIL(lidar_driver->startScan(false, true, 0, &scanMode))) {
+        fprintf(stderr, "Error, cannot start the scan operation.\n");
+        delete lidar_driver;
+        return false;
+    }
+    printf(" waiting for data...\n");
+    sleep(2);
 
     constexpr const size_t array_size{ 8192 };
     sl_lidar_response_measurement_node_hq_t nodes[array_size];
 
-    /// take only one 360 deg scan and display the result as a histogram
+    /// Wait and grab a complete 0-360 degree scan data previously received.
     size_t nodes_count{ array_size };
-    op_result = lidar_driver->grabScanDataHq(nodes, nodes_count);
-    if (SL_IS_FAIL(op_result)) {
-        fprintf(stderr, "Failed to get scan data from LIDAR \n");
-        return false;
-    }
+    do {
+        auto op_result = lidar_driver->grabScanDataHq(nodes, nodes_count);
+        if (SL_IS_FAIL(op_result)) {
+            fprintf(stderr, "Failed to get scan data with error code: %x\n", op_result);
+            return false;
+        }
+        /// Rank the scan data according to its angle value.
+        lidar_driver->ascendScanData(nodes, nodes_count);
 
-    /// Rank the scan data according to its angle value.
-    lidar_driver->ascendScanData(nodes, nodes_count);
-
-    /// Print numbers
-    print_histogram(nodes, nodes_count);
-
-    /// Plot in characters
-    plot_histogram(nodes, nodes_count);
+        /// Print numbers
+        //print_data(nodes, nodes_count);
+        /// Plot in characters histogram
+        plot_histogram(nodes, nodes_count);
+        printf("Press ENTER to refresh..");
+        getchar();
+    } while (true);
 
     /// Stop scan
     lidar_driver->stop();
+    sleep(.5);
     lidar_driver->setMotorSpeed(0);
 
     delete lidar_driver;
-    return 0;
 }

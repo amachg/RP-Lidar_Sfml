@@ -1,6 +1,6 @@
 ﻿cmake_minimum_required (VERSION 3.21)
 
-# Make MSVC use a multi-threaded statically-linked runtime library
+# Make MSVC use a statically-linked, multi-threaded runtime library
 set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
 
 project ("Lidar_test")
