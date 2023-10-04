@@ -1,7 +1,66 @@
 ﻿// Lidar_test.h : project specific include file
+
 #pragma once
 
-bool setup(ILidarDriver* & lidar_driver) {
+#define _USE_MATH_DEFINES
+#include <math.h>
+
+const int max_lidar_distance_mm = 10'000;
+
+// Πίστα με GUI σε SFML
+#include <SFML/Graphics.hpp>
+
+sf::RenderWindow παράθυρο;
+const float ύψος_παραθ = 1000;
+const float scale_factor = 10;//max_lidar_distance_mm / ύψος_παραθ;
+const float origin_offset = 500;// ύψος_παραθ / 2;
+const sf::Color χρώμα_φόντου{ sf::Color::Color(50, 50, 255) };
+sf::CircleShape κουκίδα;
+const sf::Color κίτρινο{ sf::Color::Color(255, 255, 0) };
+const sf::Color χρώμα_περιγράμματος{ sf::Color::Color(50, 50, 120) };
+
+void setup_GUI() {
+    // Δημιουργία κύριου παραθύρου.
+    παράθυρο.create(sf::VideoMode( ύψος_παραθ, ύψος_παραθ), 
+        "RP-LIDAR", sf::Style::Titlebar | sf::Style::Close);
+    παράθυρο.setPosition(sf::Vector2i(0, 0));
+    παράθυρο.setFramerateLimit(10);
+
+    κουκίδα.setFillColor(κίτρινο);
+    κουκίδα.setOutlineColor(χρώμα_περιγράμματος);
+    κουκίδα.setRadius(3);
+    κουκίδα.setOutlineThickness(1);
+}
+
+void σχεδίασε(sf::RenderTarget& render_window, 
+    auto nodes, size_t count) {
+
+    for (size_t i = 0; i < count; ++i) {
+        const auto node = nodes[i];
+        const float theta_deg = node.angle_z_q14 * 90.f / 16384;
+        const int distance_mm = node.dist_mm_q2 / 4;
+        const float theta_rad = theta_deg * M_PI / 180;
+        const float x = distance_mm * cos(theta_rad);
+        const float y = distance_mm * sin(theta_rad);
+        const int quality = node.quality >> SL_LIDAR_RESP_MEASUREMENT_QUALITY_SHIFT;
+        const auto start_node = node.flag & SL_LIDAR_RESP_HQ_FLAG_SYNCBIT ? "Start " : "      ";
+        if (quality > 0) {
+            const float screen_x_offset = origin_offset + x / scale_factor;
+            const float screen_y_offset = origin_offset - y / scale_factor;
+            κουκίδα.setPosition(x, y);
+            render_window.draw(κουκίδα);
+        }
+    }
+}
+
+#ifdef __unix__
+# include <unistd.h>
+#elif defined _WIN32
+# include <windows.h>
+#define sleep(x) Sleep(1000 * (x))
+#endif
+
+bool setup_Lidar(ILidarDriver* & lidar_driver) {
     ///  Create a LIDAR driver
     lidar_driver = *createLidarDriver();
     if (!lidar_driver) {
@@ -64,6 +123,18 @@ bool setup(ILidarDriver* & lidar_driver) {
             printf(" (errorcode: %d) Rebooting Lidar to retry..\n", healthinfo.error_code);
             lidar_driver->reset();
     }
+
+    /// Start scan
+    lidar_driver->setMotorSpeed();//setMotorSpeed(pwm);
+    LidarScanMode scanMode;
+    //lidar_driver->startScan(/*force=*/false, /*useTypicalScanMode=*/true);
+    if (SL_IS_FAIL(lidar_driver->startScan(false, true, 0, &scanMode))) {
+        fprintf(stderr, "Error, cannot start the scan operation.\n");
+        delete lidar_driver;
+        return false;
+    }
+    printf(" waiting for data...\n");
+    sleep(2);
 
     return true;
 }
