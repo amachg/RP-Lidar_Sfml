@@ -1,53 +1,76 @@
 ﻿// Lidar_test.h : project specific include file
 #pragma once
 
-#define _USE_MATH_DEFINES
-#include <math.h> //M_PI
+constexpr float pi = 3.141592654f;
 #include <sl_lidar.h>
 #include <SFML/Graphics.hpp>
 
+const sf::Vector2i win_pos(0, 0);
 constexpr unsigned ύψος_παραθ = 1000;
-sf::RenderWindow παράθυρο({ ύψος_παραθ, ύψος_παραθ }, "RP-LIDAR", sf::Style::Close);
-sf::View camera_view(sf::FloatRect(0, 0, παράθυρο.getSize().x, παράθυρο.getSize().y));
+const sf::Vector2i win_size(ύψος_παραθ, ύψος_παραθ);
 
-const float scale_factor = 10;//max_lidar_distance_mm / ύψος_παραθ;
-const float origin_offset = 500;// ύψος_παραθ / 2;
-const sf::Color χρώμα_φόντου{ sf::Color::Color(50, 50, 255) };
+sf::VideoMode video_mode({ ύψος_παραθ, ύψος_παραθ });
+sf::RenderWindow παράθυρο(video_mode, "RP-LIDAR", sf::Style::Close);
+
+//sf::FloatRect view_rect( { -win_size }, { 1 * win_size } );
+//sf::View camera_view(view_rect);
+sf::View camera_view;
+
+sf::Vertex cross_line_hor[] = {
+    sf::Vertex(sf::Vector2f(-100, 0)),
+    sf::Vertex(sf::Vector2f( 100, 0))
+};
+sf::Vertex cross_line_ver[] = {
+    sf::Vertex(sf::Vector2f(0,-100)),
+    sf::Vertex(sf::Vector2f(0, 100))
+};
+
 sf::CircleShape κουκίδα;
 const sf::Color κίτρινο{ sf::Color::Color(255, 255, 0) };
-const sf::Color χρώμα_περιγράμματος{ sf::Color::Color(50, 50, 120) };
+//const sf::Color χρώμα_περιγράμματος{ sf::Color::Color(50, 50, 120) };
+const sf::Color χρώμα_φόντου{ sf::Color::Color(0, 0, 255) };
 
 void setup_GUI() {
     // Δημιουργία κύριου παραθύρου.
-    παράθυρο.setPosition(sf::Vector2i(0, 0));
+    παράθυρο.setPosition(win_pos);
     παράθυρο.setFramerateLimit(10);
 
-    sf::Vector2f origin_offset(παράθυρο.getSize().x / 2, παράθυρο.getSize().y / 2);
-    camera_view.setCenter(origin_offset);
+    camera_view.rotate(90);
+    camera_view.move( -500, -500 );
+    //camera_view.setCenter( 1000, -1000 );
+    camera_view.zoom(5); // zoom out
 
-    κουκίδα.setRadius(3);
+    κουκίδα.setRadius(20);
     κουκίδα.setFillColor(κίτρινο);
-    κουκίδα.setOutlineColor(χρώμα_περιγράμματος);
-    κουκίδα.setOutlineThickness(1);
+    //κουκίδα.setOutlineColor(χρώμα_περιγράμματος);
+    //κουκίδα.setOutlineThickness(1);
 }
 
 void σχεδίασε(sf::RenderTarget& render_window, auto nodes, size_t count) {
-
     for (size_t i = 0; i < count; ++i) {
         const auto node = nodes[i];
         const int quality = node.quality >> SL_LIDAR_RESP_MEASUREMENT_QUALITY_SHIFT;
         if (quality > 0) {
             const auto start_node = node.flag & SL_LIDAR_RESP_HQ_FLAG_SYNCBIT ? "Start " : "      ";
             const float theta_deg = node.angle_z_q14 * 90.f / 16384;
-            const float theta_rad = theta_deg * M_PI / 180;
+            const float theta_rad = theta_deg * pi / 180;
             const int distance_mm = node.dist_mm_q2 / 4;
             const sf::Vector2f world_position( distance_mm * cos(theta_rad),
                                                distance_mm * sin(theta_rad) );
-            auto screen_xy = render_window.mapCoordsToPixel(world_position);
+            //auto screen_xy = render_window.mapCoordsToPixel(world_position);
             κουκίδα.setPosition(world_position);
             render_window.draw(κουκίδα);
+
+            sf::Vertex line[] = {
+                sf::Vertex(sf::Vector2f(0, 0), sf::Color::Red),
+                sf::Vertex(world_position, sf::Color::Red)
+            };
+            render_window.draw(line, 2, sf::Lines);
         }
     }
+    render_window.draw(cross_line_hor, 2, sf::Lines);
+    render_window.draw(cross_line_ver, 2, sf::Lines);
+
 }
 
 #ifdef __unix__
@@ -121,11 +144,10 @@ bool setup_Lidar(sl::ILidarDriver* & lidar_driver) {
             lidar_driver->reset();
     }
 
-    /// Start scan
+    /// Start scan useTypicalScanMode
     lidar_driver->setMotorSpeed();//setMotorSpeed(pwm);
     sl::LidarScanMode scanMode;
-    //lidar_driver->startScan(/*force=*/false, /*useTypicalScanMode=*/true);
-    if (SL_IS_FAIL(lidar_driver->startScan(false, true, 0, &scanMode))) {
+    if (SL_IS_FAIL(lidar_driver->startScan( false, true, 0, &scanMode))) {
         fprintf(stderr, "Error, cannot start the scan operation.\n");
         delete lidar_driver;
         return false;

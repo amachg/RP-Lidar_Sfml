@@ -29,8 +29,10 @@ int main() {
     while (παράθυρο.isOpen()) {
         while (παράθυρο.pollEvent(συμβάν)) {
             if (συμβάν.type == sf::Event::Closed) παράθυρο.close();
+            else if (συμβάν.type == sf::Event::MouseWheelMoved) { // Zomm in or out
+                camera_view.zoom(1.f + συμβάν.mouseWheel.delta * 0.1f);
+            }
         }
-
         /// Wait and grab a complete 0-360 degree scan data asyncly received with startScan.
         auto op_result = lidar_driver->grabScanDataHq(nodes, nodes_count);
         if (SL_IS_FAIL(op_result)) {
@@ -44,7 +46,7 @@ int main() {
         παράθυρο.clear(χρώμα_φόντου);
         παράθυρο.setView(camera_view);
         σχεδίασε(παράθυρο, nodes, nodes_count);
-        παράθυρο.display();
+        παράθυρο.display(); // Show everything
     }
 
     /// Stop scan
@@ -56,13 +58,7 @@ int main() {
     return EXIT_SUCCESS;
 }
 
-////  Warp Win32 application entry point, back to main()
-//#if defined(_WIN32)
-//#include <windows.h>
-//INT WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, INT) { return main(); }
-//#endif
-
-int main_OLD() {
+int main_NO_GUI() {
     // Setup Lidar driver, serial data channel and check health status.
     sl::ILidarDriver* lidar_driver{};
     if ( !setup_Lidar(lidar_driver) ) {
