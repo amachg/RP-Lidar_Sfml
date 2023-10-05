@@ -1,17 +1,15 @@
 ﻿// Lidar_test.h : project specific include file
-
 #pragma once
 
 #define _USE_MATH_DEFINES
-#include <math.h>
-
-const int max_lidar_distance_mm = 10'000;
-
-// Πίστα με GUI σε SFML
+#include <math.h> //M_PI
+#include <sl_lidar.h>
 #include <SFML/Graphics.hpp>
 
-sf::RenderWindow παράθυρο;
-const float ύψος_παραθ = 1000;
+constexpr unsigned ύψος_παραθ = 1000;
+sf::RenderWindow παράθυρο({ ύψος_παραθ, ύψος_παραθ }, "RP-LIDAR", sf::Style::Close);
+sf::View camera_view(sf::FloatRect(0, 0, παράθυρο.getSize().x, παράθυρο.getSize().y));
+
 const float scale_factor = 10;//max_lidar_distance_mm / ύψος_παραθ;
 const float origin_offset = 500;// ύψος_παραθ / 2;
 const sf::Color χρώμα_φόντου{ sf::Color::Color(50, 50, 255) };
@@ -21,33 +19,32 @@ const sf::Color χρώμα_περιγράμματος{ sf::Color::Color(50, 50, 
 
 void setup_GUI() {
     // Δημιουργία κύριου παραθύρου.
-    παράθυρο.create(sf::VideoMode( ύψος_παραθ, ύψος_παραθ), 
-        "RP-LIDAR", sf::Style::Titlebar | sf::Style::Close);
     παράθυρο.setPosition(sf::Vector2i(0, 0));
     παράθυρο.setFramerateLimit(10);
 
+    sf::Vector2f origin_offset(παράθυρο.getSize().x / 2, παράθυρο.getSize().y / 2);
+    camera_view.setCenter(origin_offset);
+
+    κουκίδα.setRadius(3);
     κουκίδα.setFillColor(κίτρινο);
     κουκίδα.setOutlineColor(χρώμα_περιγράμματος);
-    κουκίδα.setRadius(3);
     κουκίδα.setOutlineThickness(1);
 }
 
-void σχεδίασε(sf::RenderTarget& render_window, 
-    auto nodes, size_t count) {
+void σχεδίασε(sf::RenderTarget& render_window, auto nodes, size_t count) {
 
     for (size_t i = 0; i < count; ++i) {
         const auto node = nodes[i];
-        const float theta_deg = node.angle_z_q14 * 90.f / 16384;
-        const int distance_mm = node.dist_mm_q2 / 4;
-        const float theta_rad = theta_deg * M_PI / 180;
-        const float x = distance_mm * cos(theta_rad);
-        const float y = distance_mm * sin(theta_rad);
         const int quality = node.quality >> SL_LIDAR_RESP_MEASUREMENT_QUALITY_SHIFT;
-        const auto start_node = node.flag & SL_LIDAR_RESP_HQ_FLAG_SYNCBIT ? "Start " : "      ";
         if (quality > 0) {
-            const float screen_x_offset = origin_offset + x / scale_factor;
-            const float screen_y_offset = origin_offset - y / scale_factor;
-            κουκίδα.setPosition(x, y);
+            const auto start_node = node.flag & SL_LIDAR_RESP_HQ_FLAG_SYNCBIT ? "Start " : "      ";
+            const float theta_deg = node.angle_z_q14 * 90.f / 16384;
+            const float theta_rad = theta_deg * M_PI / 180;
+            const int distance_mm = node.dist_mm_q2 / 4;
+            const sf::Vector2f world_position( distance_mm * cos(theta_rad),
+                                               distance_mm * sin(theta_rad) );
+            auto screen_xy = render_window.mapCoordsToPixel(world_position);
+            κουκίδα.setPosition(world_position);
             render_window.draw(κουκίδα);
         }
     }
@@ -60,9 +57,9 @@ void σχεδίασε(sf::RenderTarget& render_window,
 #define sleep(x) Sleep(1000 * (x))
 #endif
 
-bool setup_Lidar(ILidarDriver* & lidar_driver) {
+bool setup_Lidar(sl::ILidarDriver* & lidar_driver) {
     ///  Create a LIDAR driver
-    lidar_driver = *createLidarDriver();
+    lidar_driver = *sl::createLidarDriver();
     if (!lidar_driver) {
         fprintf(stderr, "Error, insufficent memory. Exiting..\n");
         return false;
@@ -70,7 +67,7 @@ bool setup_Lidar(ILidarDriver* & lidar_driver) {
 
     ///  Create a LIDAR communication channel instance (Linux or Win32).
     //auto com_channel = createSerialPortChannel("/dev/ttyUSB0", 115200);
-    auto com_channel = createSerialPortChannel("\\\\.\\com4", 115200);
+    auto com_channel = sl::createSerialPortChannel("\\\\.\\com4", 115200);
 
     /// Make connection to the lidar via the serial channel.
     auto op_result = lidar_driver->connect(*com_channel);
@@ -126,7 +123,7 @@ bool setup_Lidar(ILidarDriver* & lidar_driver) {
 
     /// Start scan
     lidar_driver->setMotorSpeed();//setMotorSpeed(pwm);
-    LidarScanMode scanMode;
+    sl::LidarScanMode scanMode;
     //lidar_driver->startScan(/*force=*/false, /*useTypicalScanMode=*/true);
     if (SL_IS_FAIL(lidar_driver->startScan(false, true, 0, &scanMode))) {
         fprintf(stderr, "Error, cannot start the scan operation.\n");
