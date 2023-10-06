@@ -1,12 +1,13 @@
 ﻿/*
- * RPLIDAR A1M8 can perform a 360° scan, within a 0.15-12 meter range.
+ * RPLIDAR A1M8 can perform a 360° scan, within a 15cm..12m range.
+ * For accuracy, pre-heat for 2' (Start the scan mode and the motor).
+ * 
  * Firmware Version: 1.29 ( default scan mode being changed to boost mode )
- * Sample Frequency: 2 default, 4 Express, 8 boost, kHz
- * Round Scan Rate: 5.5 by default, or 2-10 Hz
+ * Sample Frequency (kHz): 2 default, 4 Express, 8 boost
+ * Round Scan Rate (Hz): 5.5 by default, or 2-10
  * Angular Resolution ≤ 1°
  * Sample Duration 0.125 milliseconds
  * UART @ 115200 bps
- * For accuracy, pre-heat for 2' (Start the scan mode and the scan motor is rotating).
  */
 
 #include "Lidar_test.h"
@@ -55,7 +56,7 @@ int main() {
         lidar_driver->ascendScanData(nodes, nodes_count);
 
         //Redraw on screen
-        παράθυρο.clear(χρώμα_φόντου);
+        παράθυρο.clear(sf::Color::Blue);
         παράθυρο.setView(camera_view);
         σχεδίασε(παράθυρο, nodes, nodes_count);
         παράθυρο.display(); // Show everything
@@ -65,8 +66,8 @@ int main() {
     lidar_driver->stop();
     sleep(.020);
     lidar_driver->setMotorSpeed(0);
-
     delete lidar_driver;
+
     return EXIT_SUCCESS;
 }
 

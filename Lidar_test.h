@@ -6,40 +6,23 @@ constexpr float pi = 3.141592654f;
 #include <SFML/Graphics.hpp>
 
 // Δημιουργία κύριου παραθύρου.
-const sf::Vector2u wind_size(1800, 900);
+const sf::Vector2u wind_size(900, 900);
 sf::RenderWindow παράθυρο({ wind_size.x, wind_size.y }, "RP-LIDAR");
 sf::View camera_view;
 
-const float cross_size = wind_size.y / 10u;
-const sf::Vertex cross_line_hor[] = {
-    sf::Vertex(sf::Vector2f(-cross_size, 0) ),
-    sf::Vertex(sf::Vector2f( cross_size, 0) )
-};
-const sf::Vertex cross_line_ver[] = {
-    sf::Vertex(sf::Vector2f( 0,-cross_size) ),
-    sf::Vertex(sf::Vector2f( 0, cross_size) )
-};
-
 sf::CircleShape κουκίδα;
-const sf::Color κίτρινο{ sf::Color::Color(255, 255, 0) };
-const sf::Color χρώμα_περιγρ{ sf::Color::Color(50, 50, 120) };
-const sf::Color χρώμα_φόντου{ sf::Color::Color(0, 0, 255) };
 
 void setup_GUI() {
+
+    camera_view.setCenter(0, 0);
+    //camera_view.setRotation(90);// Normally lidar motor is on the left of the Window
+    camera_view.zoom(1); // >0 means zoom-out
+    παράθυρο.setView(camera_view);
     παράθυρο.setPosition({ 0,0 });
     παράθυρο.setFramerateLimit(5);
 
-    const sf::Vector2f view_pos = - sf::Vector2f(wind_size.x, wind_size.y);
-    const sf::Vector2f view_size( wind_size.x, wind_size.y);
-    camera_view.setCenter(-300, 00);
-    //camera_view.reset(sf::FloatRect{ view_pos, view_size });    
-    //camera_view.setRotation(90);// Normally lidar motor is on the left of the Window
-    //camera_view.zoom(10); // zoom out
-
-    κουκίδα.setRadius(2);
-    κουκίδα.setFillColor(κίτρινο);
-    κουκίδα.setOutlineColor(χρώμα_περιγρ);
-    κουκίδα.setOutlineThickness(1);
+    κουκίδα.setRadius(.1);
+    κουκίδα.setFillColor(sf::Color::Yellow);
 }
 
 void σχεδίασε(sf::RenderTarget& render_window, auto nodes, size_t count) {
@@ -51,19 +34,29 @@ void σχεδίασε(sf::RenderTarget& render_window, auto nodes, size_t count)
             const float theta_deg = node.angle_z_q14 * 90.f / 16384;
             const float theta_rad = theta_deg * pi / 180;
             const int distance_mm = node.dist_mm_q2 / 4;
-            const sf::Vector2f reflection_pos_cm( distance_mm * cos(theta_rad) /10,
-                                                  distance_mm * sin(theta_rad) /10);
-            κουκίδα.setPosition(reflection_pos_cm);
+            const sf::Vector2f endpoint_cm(distance_mm * cos(theta_rad) /10,
+                                           distance_mm * sin(theta_rad) /10);
+            κουκίδα.setPosition(endpoint_cm);
             render_window.draw(κουκίδα);
 
-            sf::Vertex line[] = {
+            sf::Vertex ray[] = {
                 sf::Vertex(sf::Vector2f(0, 0), sf::Color::Red),
-                sf::Vertex(reflection_pos_cm, sf::Color::Red)
+                sf::Vertex(endpoint_cm, sf::Color::Red)
             };
-            render_window.draw(line, 2, sf::Lines);
+            render_window.draw(ray, 2, sf::Lines);
         }
     }
+
+    static const float cross_size = wind_size.y / 5u;
+    const sf::Vertex cross_line_hor[] = {
+        sf::Vertex({-cross_size, 0}),
+        sf::Vertex({ cross_size, 0})
+    };
     render_window.draw(cross_line_hor, 2, sf::Lines);
+    static const sf::Vertex cross_line_ver[] = {
+        sf::Vertex({0,-cross_size}),
+        sf::Vertex({0, cross_size})
+    };
     render_window.draw(cross_line_ver, 2, sf::Lines);
 
 }
@@ -83,9 +76,9 @@ bool setup_Lidar(sl::ILidarDriver* & lidar_driver) {
         return false;
     }
 
-    ///  Create a LIDAR communication channel instance (Linux or Win32).
-    //auto com_channel = createSerialPortChannel("/dev/ttyUSB0", 115200);
-    auto com_channel = sl::createSerialPortChannel("\\\\.\\com4", 115200);
+    ///  Create a LIDAR communication channel
+    auto com_device = "com4";    // "/dev/ttyUSB0"  (Linux or Win32)
+    auto com_channel = sl::createSerialPortChannel(com_device, 115200);
 
     /// Make connection to the lidar via the serial channel.
     auto op_result = lidar_driver->connect(*com_channel);
