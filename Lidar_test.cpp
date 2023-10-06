@@ -29,10 +29,10 @@ int main() {
     while (παράθυρο.isOpen()) {
         while (παράθυρο.pollEvent(συμβάν)) {
             if (συμβάν.type == sf::Event::Closed) παράθυρο.close();
-            else if (συμβάν.type == sf::Event::Resized) {
-                sf::FloatRect visible( 0,0, συμβάν.size.width, συμβάν.size.height);
-                παράθυρο.setView(sf::View(visible));
-            }
+            //else if (συμβάν.type == sf::Event::Resized) {
+            //    sf::FloatRect visible( 0,0, συμβάν.size.width, συμβάν.size.height);
+            //    παράθυρο.setView(sf::View(visible));
+            //}
             else if (συμβάν.type == sf::Event::MouseWheelMoved) { // Zomm in or out
                 camera_view.zoom( 1 + συμβάν.mouseWheel.delta * 0.1f);
             }

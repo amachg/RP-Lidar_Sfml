@@ -27,17 +27,14 @@ const sf::Color χρώμα_φόντου{ sf::Color::Color(0, 0, 255) };
 
 void setup_GUI() {
     παράθυρο.setPosition({ 0,0 });
-    παράθυρο.setFramerateLimit(1);
+    παράθυρο.setFramerateLimit(5);
 
-    const sf::Vector2f rect_size(wind_size.x, wind_size.y);
-    const sf::Vector2f rect_pos(-rect_size.x, -rect_size.y);
-    const sf::FloatRect view_rect(rect_pos, rect_size);
-    camera_view.reset(view_rect);
-    // Normally lidar motor is on the left of the Window
-    //camera_view.setRotation(90);
+    const sf::Vector2f view_pos = - sf::Vector2f(wind_size.x, wind_size.y);
+    const sf::Vector2f view_size( wind_size.x, wind_size.y);
+    camera_view.setCenter(-300, 00);
+    //camera_view.reset(sf::FloatRect{ view_pos, view_size });    
+    //camera_view.setRotation(90);// Normally lidar motor is on the left of the Window
     //camera_view.zoom(10); // zoom out
-    //camera_view.move( -half, -half);
-    //camera_view.setCenter( sf::Vector2f(half, half) );
 
     κουκίδα.setRadius(2);
     κουκίδα.setFillColor(κίτρινο);
