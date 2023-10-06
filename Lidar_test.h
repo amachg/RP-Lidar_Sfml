@@ -5,45 +5,44 @@ constexpr float pi = 3.141592654f;
 #include <sl_lidar.h>
 #include <SFML/Graphics.hpp>
 
-const sf::Vector2i win_pos(0, 0);
-constexpr unsigned ύψος_παραθ = 1000;
-const sf::Vector2i win_size(ύψος_παραθ, ύψος_παραθ);
-
-sf::VideoMode video_mode({ ύψος_παραθ, ύψος_παραθ });
-sf::RenderWindow παράθυρο(video_mode, "RP-LIDAR", sf::Style::Close);
-
-//sf::FloatRect view_rect( { -win_size }, { 1 * win_size } );
-//sf::View camera_view(view_rect);
+// Δημιουργία κύριου παραθύρου.
+const sf::Vector2u wind_size(1800, 900);
+sf::RenderWindow παράθυρο({ wind_size.x, wind_size.y }, "RP-LIDAR");
 sf::View camera_view;
 
-sf::Vertex cross_line_hor[] = {
-    sf::Vertex(sf::Vector2f(-100, 0)),
-    sf::Vertex(sf::Vector2f( 100, 0))
+const float cross_size = wind_size.y / 10u;
+const sf::Vertex cross_line_hor[] = {
+    sf::Vertex(sf::Vector2f(-cross_size, 0) ),
+    sf::Vertex(sf::Vector2f( cross_size, 0) )
 };
-sf::Vertex cross_line_ver[] = {
-    sf::Vertex(sf::Vector2f(0,-100)),
-    sf::Vertex(sf::Vector2f(0, 100))
+const sf::Vertex cross_line_ver[] = {
+    sf::Vertex(sf::Vector2f( 0,-cross_size) ),
+    sf::Vertex(sf::Vector2f( 0, cross_size) )
 };
 
 sf::CircleShape κουκίδα;
 const sf::Color κίτρινο{ sf::Color::Color(255, 255, 0) };
-//const sf::Color χρώμα_περιγράμματος{ sf::Color::Color(50, 50, 120) };
+const sf::Color χρώμα_περιγρ{ sf::Color::Color(50, 50, 120) };
 const sf::Color χρώμα_φόντου{ sf::Color::Color(0, 0, 255) };
 
 void setup_GUI() {
-    // Δημιουργία κύριου παραθύρου.
-    παράθυρο.setPosition(win_pos);
-    παράθυρο.setFramerateLimit(10);
+    παράθυρο.setPosition({ 0,0 });
+    παράθυρο.setFramerateLimit(1);
 
-    camera_view.rotate(90);
-    camera_view.move( -500, -500 );
-    //camera_view.setCenter( 1000, -1000 );
-    camera_view.zoom(5); // zoom out
+    const sf::Vector2f rect_size(wind_size.x, wind_size.y);
+    const sf::Vector2f rect_pos(-rect_size.x, -rect_size.y);
+    const sf::FloatRect view_rect(rect_pos, rect_size);
+    camera_view.reset(view_rect);
+    // Normally lidar motor is on the left of the Window
+    //camera_view.setRotation(90);
+    //camera_view.zoom(10); // zoom out
+    //camera_view.move( -half, -half);
+    //camera_view.setCenter( sf::Vector2f(half, half) );
 
-    κουκίδα.setRadius(20);
+    κουκίδα.setRadius(2);
     κουκίδα.setFillColor(κίτρινο);
-    //κουκίδα.setOutlineColor(χρώμα_περιγράμματος);
-    //κουκίδα.setOutlineThickness(1);
+    κουκίδα.setOutlineColor(χρώμα_περιγρ);
+    κουκίδα.setOutlineThickness(1);
 }
 
 void σχεδίασε(sf::RenderTarget& render_window, auto nodes, size_t count) {
@@ -55,15 +54,14 @@ void σχεδίασε(sf::RenderTarget& render_window, auto nodes, size_t count)
             const float theta_deg = node.angle_z_q14 * 90.f / 16384;
             const float theta_rad = theta_deg * pi / 180;
             const int distance_mm = node.dist_mm_q2 / 4;
-            const sf::Vector2f world_position( distance_mm * cos(theta_rad),
-                                               distance_mm * sin(theta_rad) );
-            //auto screen_xy = render_window.mapCoordsToPixel(world_position);
-            κουκίδα.setPosition(world_position);
+            const sf::Vector2f reflection_pos_cm( distance_mm * cos(theta_rad) /10,
+                                                  distance_mm * sin(theta_rad) /10);
+            κουκίδα.setPosition(reflection_pos_cm);
             render_window.draw(κουκίδα);
 
             sf::Vertex line[] = {
                 sf::Vertex(sf::Vector2f(0, 0), sf::Color::Red),
-                sf::Vertex(world_position, sf::Color::Red)
+                sf::Vertex(reflection_pos_cm, sf::Color::Red)
             };
             render_window.draw(line, 2, sf::Lines);
         }

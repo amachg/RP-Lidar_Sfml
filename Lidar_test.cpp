@@ -29,8 +29,20 @@ int main() {
     while (παράθυρο.isOpen()) {
         while (παράθυρο.pollEvent(συμβάν)) {
             if (συμβάν.type == sf::Event::Closed) παράθυρο.close();
+            else if (συμβάν.type == sf::Event::Resized) {
+                sf::FloatRect visible( 0,0, συμβάν.size.width, συμβάν.size.height);
+                παράθυρο.setView(sf::View(visible));
+            }
             else if (συμβάν.type == sf::Event::MouseWheelMoved) { // Zomm in or out
-                camera_view.zoom(1.f + συμβάν.mouseWheel.delta * 0.1f);
+                camera_view.zoom( 1 + συμβάν.mouseWheel.delta * 0.1f);
+            }
+            else if (συμβάν.type == sf::Event::KeyPressed) {
+                switch (συμβάν.key.code) {
+                case sf::Keyboard::Left: camera_view.move(-10, 0); break;
+                case sf::Keyboard::Right:camera_view.move(10, 0); break;
+                case sf::Keyboard::Up:   camera_view.move(0, -10); break;
+                case sf::Keyboard::Down: camera_view.move(0, 10);
+                }
             }
         }
         /// Wait and grab a complete 0-360 degree scan data asyncly received with startScan.
