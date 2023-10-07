@@ -1,9 +1,13 @@
 ﻿// Lidar_test.h : project specific include file
 #pragma once
 
-constexpr float pi = 3.141592654f;
 #include <sl_lidar.h>
 #include <SFML/Graphics.hpp>
+
+constexpr float pi = 3.141592654f;
+
+template <class T>
+constexpr const T& max(const T& a, const T& b) {return a > b ? a : b;}
 
 // Δημιουργία κύριου παραθύρου.
 const sf::Vector2u wind_size(900, 900);
@@ -21,11 +25,12 @@ void setup_GUI() {
     παράθυρο.setPosition({ 0,0 });
     παράθυρο.setFramerateLimit(5);
 
-    κουκίδα.setRadius(.1);
+    κουκίδα.setRadius(.4);
     κουκίδα.setFillColor(sf::Color::Yellow);
 }
 
 void σχεδίασε(sf::RenderTarget& render_window, auto nodes, size_t count) {
+    int max_distance_mm{ 0 };
     for (size_t i = 0; i < count; ++i) {
         const auto node = nodes[i];
         const int quality = node.quality >> SL_LIDAR_RESP_MEASUREMENT_QUALITY_SHIFT;
@@ -34,20 +39,22 @@ void σχεδίασε(sf::RenderTarget& render_window, auto nodes, size_t count)
             const float theta_deg = node.angle_z_q14 * 90.f / 16384;
             const float theta_rad = theta_deg * pi / 180;
             const int distance_mm = node.dist_mm_q2 / 4;
+            max_distance_mm = max(distance_mm, max_distance_mm);
             const sf::Vector2f endpoint_cm(distance_mm * cos(theta_rad) /10,
                                            distance_mm * sin(theta_rad) /10);
-            κουκίδα.setPosition(endpoint_cm);
-            render_window.draw(κουκίδα);
+            //κουκίδα.setPosition(endpoint_cm);
+            //render_window.draw(κουκίδα);
 
             sf::Vertex ray[] = {
                 sf::Vertex(sf::Vector2f(0, 0), sf::Color::Red),
-                sf::Vertex(endpoint_cm, sf::Color::Red)
+                sf::Vertex(endpoint_cm)
             };
             render_window.draw(ray, 2, sf::Lines);
         }
     }
+    printf("max distance in cm: %d\n", max_distance_mm / 10);
 
-    static const float cross_size = wind_size.y / 5u;
+    static const float cross_size = wind_size.y / 4;
     const sf::Vertex cross_line_hor[] = {
         sf::Vertex({-cross_size, 0}),
         sf::Vertex({ cross_size, 0})
@@ -77,7 +84,7 @@ bool setup_Lidar(sl::ILidarDriver* & lidar_driver) {
     }
 
     ///  Create a LIDAR communication channel
-    auto com_device = "com4";    // "/dev/ttyUSB0"  (Linux or Win32)
+    auto com_device = "com5";    // "/dev/ttyUSB0"  (Linux or Win32)
     auto com_channel = sl::createSerialPortChannel(com_device, 115200);
 
     /// Make connection to the lidar via the serial channel.
