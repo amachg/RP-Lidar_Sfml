@@ -14,7 +14,7 @@ const sf::Vector2u wind_size(900, 900);
 sf::RenderWindow window({ wind_size.x, wind_size.y }, "RP-LIDAR");
 sf::View camera_view;
 
-const float cross_size = wind_size.y / 9;
+const float cross_size = 500;
 const sf::Vertex cross_line_hor[] = {
     sf::Vertex({-cross_size, 0}),
     sf::Vertex({ cross_size, 0})
@@ -23,7 +23,7 @@ const sf::Vertex cross_line_ver[] = {
     sf::Vertex({0,-cross_size}),
     sf::Vertex({0, cross_size})
 };
-sf::CircleShape circle;
+sf::CircleShape lidar, motor;
 
 void setup_GUI() {
     camera_view.setCenter(0, 0);
@@ -33,12 +33,15 @@ void setup_GUI() {
     window.setPosition({ 0,0 });
     window.setFramerateLimit(5);
 
-    circle.setRadius(10);
-    circle.setFillColor(sf::Color::Yellow);
-    circle.setOrigin(10,10);
+    lidar.setFillColor(sf::Color::Black);
+    lidar.setRadius(20);
+    lidar.setOrigin(20,20);
+    motor.setFillColor(sf::Color::Black);
+    motor.setRadius(10);
+    motor.setOrigin(30, 10);
 }
 
-void draw(sf::RenderTarget& render_window, auto nodes, size_t count) {
+void draw(sf::RenderTarget& render, auto nodes, size_t count) {
     static int max_distance_mm{ 0 };
     static sf::Vertex origin(sf::Vector2f(0, 0), sf::Color::Red);
 
@@ -56,10 +59,14 @@ void draw(sf::RenderTarget& render_window, auto nodes, size_t count) {
                 distance_mm * cos(theta_rad) /10,
                 distance_mm * sin(theta_rad) /10);
             const sf::Vertex ray[] = { origin, sf::Vertex(endpoint_cm) };
-            render_window.draw(ray, 2, sf::Lines);
+            render.draw(ray, 2, sf::Lines);
         }
     }
     //printf("max distance in cm: %d\n", max_distance_mm / 10);
+    render.draw(cross_line_hor, 2, sf::Lines);
+    render.draw(cross_line_ver, 2, sf::Lines);
+    render.draw(lidar);
+    render.draw(motor);
 }
 
 #ifdef __unix__

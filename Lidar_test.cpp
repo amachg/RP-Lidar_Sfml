@@ -56,12 +56,7 @@ int main() {
         //Redraw on screen
         window.setView(camera_view);
         window.clear(sf::Color::Blue);
-
         draw(window, nodes, nodes_count);
-        window.draw(cross_line_hor, 2, sf::Lines);
-        window.draw(cross_line_ver, 2, sf::Lines);
-        window.draw(circle);
-
         window.display(); // Show everything
     }
 
