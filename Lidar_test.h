@@ -9,28 +9,39 @@ constexpr float pi = 3.141592654f;
 template <class T>
 constexpr const T& max(const T& a, const T& b) {return a > b ? a : b;}
 
-// Δημιουργία κύριου παραθύρου.
+// App Window and View.
 const sf::Vector2u wind_size(900, 900);
-sf::RenderWindow παράθυρο({ wind_size.x, wind_size.y }, "RP-LIDAR");
+sf::RenderWindow window({ wind_size.x, wind_size.y }, "RP-LIDAR");
 sf::View camera_view;
 
-sf::CircleShape κουκίδα;
+const float cross_size = wind_size.y / 9;
+const sf::Vertex cross_line_hor[] = {
+    sf::Vertex({-cross_size, 0}),
+    sf::Vertex({ cross_size, 0})
+};
+const sf::Vertex cross_line_ver[] = {
+    sf::Vertex({0,-cross_size}),
+    sf::Vertex({0, cross_size})
+};
+sf::CircleShape circle;
 
 void setup_GUI() {
-
     camera_view.setCenter(0, 0);
     //camera_view.setRotation(90);// Normally lidar motor is on the left of the Window
     camera_view.zoom(1); // >0 means zoom-out
-    παράθυρο.setView(camera_view);
-    παράθυρο.setPosition({ 0,0 });
-    παράθυρο.setFramerateLimit(5);
+    window.setView(camera_view);
+    window.setPosition({ 0,0 });
+    window.setFramerateLimit(5);
 
-    κουκίδα.setRadius(.4);
-    κουκίδα.setFillColor(sf::Color::Yellow);
+    circle.setRadius(10);
+    circle.setFillColor(sf::Color::Yellow);
+    circle.setOrigin(10,10);
 }
 
-void σχεδίασε(sf::RenderTarget& render_window, auto nodes, size_t count) {
-    int max_distance_mm{ 0 };
+void draw(sf::RenderTarget& render_window, auto nodes, size_t count) {
+    static int max_distance_mm{ 0 };
+    static sf::Vertex origin(sf::Vector2f(0, 0), sf::Color::Red);
+
     for (size_t i = 0; i < count; ++i) {
         const auto node = nodes[i];
         const int quality = node.quality >> SL_LIDAR_RESP_MEASUREMENT_QUALITY_SHIFT;
@@ -39,33 +50,16 @@ void σχεδίασε(sf::RenderTarget& render_window, auto nodes, size_t count)
             const float theta_deg = node.angle_z_q14 * 90.f / 16384;
             const float theta_rad = theta_deg * pi / 180;
             const int distance_mm = node.dist_mm_q2 / 4;
-            max_distance_mm = max(distance_mm, max_distance_mm);
-            const sf::Vector2f endpoint_cm(distance_mm * cos(theta_rad) /10,
-                                           distance_mm * sin(theta_rad) /10);
-            //κουκίδα.setPosition(endpoint_cm);
-            //render_window.draw(κουκίδα);
+            //max_distance_mm = max(distance_mm, max_distance_mm);
 
-            sf::Vertex ray[] = {
-                sf::Vertex(sf::Vector2f(0, 0), sf::Color::Red),
-                sf::Vertex(endpoint_cm)
-            };
+            const sf::Vector2f endpoint_cm(
+                distance_mm * cos(theta_rad) /10,
+                distance_mm * sin(theta_rad) /10);
+            const sf::Vertex ray[] = { origin, sf::Vertex(endpoint_cm) };
             render_window.draw(ray, 2, sf::Lines);
         }
     }
-    printf("max distance in cm: %d\n", max_distance_mm / 10);
-
-    static const float cross_size = wind_size.y / 4;
-    const sf::Vertex cross_line_hor[] = {
-        sf::Vertex({-cross_size, 0}),
-        sf::Vertex({ cross_size, 0})
-    };
-    render_window.draw(cross_line_hor, 2, sf::Lines);
-    static const sf::Vertex cross_line_ver[] = {
-        sf::Vertex({0,-cross_size}),
-        sf::Vertex({0, cross_size})
-    };
-    render_window.draw(cross_line_ver, 2, sf::Lines);
-
+    //printf("max distance in cm: %d\n", max_distance_mm / 10);
 }
 
 #ifdef __unix__
