@@ -1,13 +1,16 @@
 ﻿/*
- * RPLIDAR A1M8 can perform a 360° scan, within a 15cm..12m range.
- * For accuracy, pre-heat for 2' (Start the scan mode and the motor).
+ * Slamtec LIDAR Display for SFML
  * 
- * Firmware Version: 1.29 ( now default scan mode is: Boost )
- * Sample Frequency (kHz): 2 default, 4 Express, 8 boost
- * Round Scan Rate (Hz): 5.5 by default, or 2-10
- * Angular Resolution ≤ 1°
- * Sample Duration 0.125 milliseconds
- * UART @ 115200 bps
+ * This code reads point cloud data from a Slamtec RPLIDAR Device and
+ * displays the output on an SFML display in realtime.
+ * 
+ * Author: Tassos - https://github.com/amachg
+ * Date: 10 October 2023
+ * 
+ * Requires: 
+ *      Slamtec RPLIDAR SDK:  https://github.com/Slamtec/rplidar_sdk (needs installation)
+ *      CMake build system (tested in VS)
+ *      SFML graphic framework (installed automatically) 
  */
 
 #include "Lidar_test.h"
@@ -20,7 +23,7 @@ int main() {
         //delete lidar_driver;
         //return false;
     }
-    constexpr const size_t array_size{ 8192 }; // actually ~1090
+    constexpr const size_t array_size{ 8192 }; // actually ~1090 used
     sl_lidar_response_measurement_node_hq_t nodes[array_size];
     size_t nodes_count{ array_size };
     sf::Event event;
@@ -56,7 +59,7 @@ int main() {
         //Redraw on screen
         window.setView(camera_view);
         window.clear(sf::Color::Blue);
-        draw(window, nodes, nodes_count);
+        draw_all(window, nodes, nodes_count);
         window.display(); // Show everything
     }
 

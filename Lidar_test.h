@@ -1,49 +1,64 @@
-﻿// Lidar_test.h : project specific include file
-#pragma once
+﻿/* Lidar_test.h : project specific include file
+*
+* RPLIDAR A1M8 can perform a 360° scan, within a 15cm..12m range.
+* For accuracy, pre - heat for 2' (Start the scan mode and the motor).
+*
+*Firmware Version : 1.29 (new default scan mode is : Boost)
+* Sample Frequency(kHz) : Normal scan mode = 2k, Express = 4k, Boost = 8k
+* Round Scan Rate(Hz) : 5.5 by default, or 2 - 10
+* Angular Resolution ≤ 1°
+* Sample Duration 0.125 milliseconds
+* UART @ 115200 bps
+*
+*/
 
-#include <sl_lidar.h>
+#pragma once
+#include <sl_lidar.h> //RPLIDAR sdk
 #include <SFML/Graphics.hpp>
 
-constexpr float pi = 3.141592654f;
-
-template <class T>
-constexpr const T& max(const T& a, const T& b) {return a > b ? a : b;}
-
-// App Window and View.
+// GLOBALS 
+// App Window and View
 const sf::Vector2u wind_size(900, 900);
-sf::RenderWindow window({ wind_size.x, wind_size.y }, "RP-LIDAR");
+sf::RenderWindow window({ wind_size.x, wind_size.y }, "RP-LIDAR Scan");
 sf::View camera_view;
-
-const float cross_size = 500;
-const sf::Vertex cross_line_hor[] = {
+// Graphics 
+sf::CircleShape lidar(20), motor(10);
+const float cross_size = 450;
+const sf::Vertex cross_lines[] = {
     sf::Vertex({-cross_size, 0}),
-    sf::Vertex({ cross_size, 0})
-};
-const sf::Vertex cross_line_ver[] = {
+    sf::Vertex({ cross_size, 0}),
     sf::Vertex({0,-cross_size}),
     sf::Vertex({0, cross_size})
 };
-sf::CircleShape lidar, motor;
+const sf::Vertex origin(sf::Vector2f(0, 0), sf::Color::Red);
+// Text
+sf::Font font;
+sf::Text text;
+char text_str[20];
 
 void setup_GUI() {
+    window.setPosition({ 0,0 }); // Placement of app window on screen
+    window.setFramerateLimit(5);
     camera_view.setCenter(0, 0);
     //camera_view.setRotation(90);// Normally lidar motor is on the left of the Window
     camera_view.zoom(1); // >0 means zoom-out
     window.setView(camera_view);
-    window.setPosition({ 0,0 });
-    window.setFramerateLimit(5);
 
     lidar.setFillColor(sf::Color::Black);
-    lidar.setRadius(20);
-    lidar.setOrigin(20,20);
-    motor.setFillColor(sf::Color::Black);
-    motor.setRadius(10);
-    motor.setOrigin(30, 10);
+    lidar.setOutlineThickness(1);
+    lidar.setOrigin(lidar.getRadius(), lidar.getRadius());//relative to top-left corner of object
+    motor.setFillColor(lidar.getFillColor());
+    motor.setOutlineThickness(1);
+    motor.setOrigin(lidar.getRadius()+ motor.getRadius(), motor.getRadius());
+
+    if (!font.loadFromFile(R"(../../../arial.ttf)"))
+        exit(EXIT_FAILURE);
+    text.setFont(font);
+    text.setPosition(-cross_size, -cross_size);
 }
 
-void draw(sf::RenderTarget& render, auto nodes, size_t count) {
+void draw_all(sf::RenderTarget& window, auto nodes, size_t count) {
     static int max_distance_mm{ 0 };
-    static sf::Vertex origin(sf::Vector2f(0, 0), sf::Color::Red);
 
     for (size_t i = 0; i < count; ++i) {
         const auto node = nodes[i];
@@ -51,22 +66,28 @@ void draw(sf::RenderTarget& render, auto nodes, size_t count) {
         if (quality > 0) {
             const auto start_node = node.flag & SL_LIDAR_RESP_HQ_FLAG_SYNCBIT ? "Start " : "      ";
             const float theta_deg = node.angle_z_q14 * 90.f / 16384;
+            static constexpr auto pi{ 3.141592654f };
             const float theta_rad = theta_deg * pi / 180;
             const int distance_mm = node.dist_mm_q2 / 4;
-            //max_distance_mm = max(distance_mm, max_distance_mm);
+            static constexpr auto max = [](const int& a, const int& b) {
+                return a > b ? a : b; 
+            };
+            max_distance_mm = max(distance_mm, max_distance_mm);
 
             const sf::Vector2f endpoint_cm(
                 distance_mm * cos(theta_rad) /10,
                 distance_mm * sin(theta_rad) /10);
             const sf::Vertex ray[] = { origin, sf::Vertex(endpoint_cm) };
-            render.draw(ray, 2, sf::Lines);
+            window.draw(ray, 2, sf::Lines);
         }
     }
-    //printf("max distance in cm: %d\n", max_distance_mm / 10);
-    render.draw(cross_line_hor, 2, sf::Lines);
-    render.draw(cross_line_ver, 2, sf::Lines);
-    render.draw(lidar);
-    render.draw(motor);
+    sprintf(text_str, "Max(m): %d\n", max_distance_mm / 10'000);
+    text.setString(text_str);
+    window.draw(text);
+    window.draw(cross_lines, 2, sf::Lines);
+    window.draw(&cross_lines[2], 2, sf::Lines);
+    window.draw(motor);
+    window.draw(lidar);
 }
 
 #ifdef __unix__
@@ -84,8 +105,8 @@ bool setup_Lidar(sl::ILidarDriver* & lidar_driver) {
         return false;
     }
 
-    ///  Create a LIDAR communication channel
-    auto com_device = "com5";    // "/dev/ttyUSB0"  (Linux or Win32)
+    ///  Create a LIDAR communication channel in Linux or Win32
+    auto com_device = "com5";    // "/dev/ttyUSB0" for Linux
     auto com_channel = sl::createSerialPortChannel(com_device, 115200);
 
     /// Make connection to the lidar via the serial channel.
@@ -100,7 +121,6 @@ bool setup_Lidar(sl::ILidarDriver* & lidar_driver) {
     op_result = lidar_driver->getDeviceInfo(deviceInfo);
     if (SL_IS_FAIL(op_result)) {
         if (op_result == SL_RESULT_OPERATION_TIMEOUT) {
-            // you can check the detailed failure reason
             fprintf(stderr, "Error, could not get device info, operation time out.\n");
         } else {
             fprintf(stderr, "Error, could not get device info, unexpected error, code: %x\n", op_result);
@@ -137,13 +157,17 @@ bool setup_Lidar(sl::ILidarDriver* & lidar_driver) {
         case SL_LIDAR_STATUS_ERROR:
             printf("Error. Lidar internal error detected.");
             printf(" (errorcode: %d) Rebooting Lidar to retry..\n", healthinfo.error_code);
-            lidar_driver->reset();
+            op_result = lidar_driver->reset();
+            if (SL_IS_FAIL(op_result)) {
+                fprintf(stderr, "Error, cannot reset rplidar: %x\n", op_result);
+                return false;
+            }
     }
 
-    /// Start scan useTypicalScanMode
-    lidar_driver->setMotorSpeed();//setMotorSpeed(pwm);
-    sl::LidarScanMode scanMode;
-    if (SL_IS_FAIL(lidar_driver->startScan( false, true, 0, &scanMode))) {
+    /// Use lidar's typical scan mode, to fetch scan data continuously by background thread
+    lidar_driver->setMotorSpeed();
+    sl::LidarScanMode outUsedScanMode;
+    if (SL_IS_FAIL(lidar_driver->startScan( false, true, 0, &outUsedScanMode))) {
         fprintf(stderr, "Error, cannot start the scan operation.\n");
         delete lidar_driver;
         return false;
