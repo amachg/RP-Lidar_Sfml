@@ -27,8 +27,8 @@ const float cross_size = 450;
 const sf::Vertex cross_lines[] = {
     sf::Vertex({-cross_size, 0}),
     sf::Vertex({ cross_size, 0}),
-    sf::Vertex({0,-cross_size}),
-    sf::Vertex({0, cross_size})
+    sf::Vertex({ 0,         -cross_size}),
+    sf::Vertex({ 0,          cross_size})
 };
 const sf::Vertex origin(sf::Vector2f(0, 0), sf::Color::Red);
 // Text
@@ -57,11 +57,10 @@ void setup_GUI() {
     text.setPosition(-cross_size, -cross_size);
 }
 
-void draw_all(sf::RenderTarget& window, auto nodes, size_t count) {
+void draw_all(sf::RenderTarget& window, auto& nodes, size_t count) {
     static int max_distance_mm{ 0 };
-
     for (size_t i = 0; i < count; ++i) {
-        const auto node = nodes[i];
+        const auto& node = nodes[i];
         const int quality = node.quality >> SL_LIDAR_RESP_MEASUREMENT_QUALITY_SHIFT;
         if (quality > 0) {
             const auto start_node = node.flag & SL_LIDAR_RESP_HQ_FLAG_SYNCBIT ? "Start " : "      ";
@@ -73,7 +72,6 @@ void draw_all(sf::RenderTarget& window, auto nodes, size_t count) {
                 return a > b ? a : b; 
             };
             max_distance_mm = max(distance_mm, max_distance_mm);
-
             const sf::Vector2f endpoint_cm(
                 distance_mm * cos(theta_rad) /10,
                 distance_mm * sin(theta_rad) /10);
@@ -90,13 +88,6 @@ void draw_all(sf::RenderTarget& window, auto nodes, size_t count) {
     window.draw(lidar);
 }
 
-#ifdef __unix__
-# include <unistd.h>
-#elif defined _WIN32
-# include <windows.h>
-#define sleep(x) Sleep(1000 * (x))
-#endif
-
 bool setup_Lidar(sl::ILidarDriver* & lidar_driver) {
     ///  Create a LIDAR driver
     lidar_driver = *sl::createLidarDriver();
@@ -104,18 +95,15 @@ bool setup_Lidar(sl::ILidarDriver* & lidar_driver) {
         fprintf(stderr, "Error, insufficent memory. Exiting..\n");
         return false;
     }
-
     ///  Create a LIDAR communication channel in Linux or Win32
     auto com_device = "com5";    // "/dev/ttyUSB0" for Linux
     auto com_channel = sl::createSerialPortChannel(com_device, 115200);
-
     /// Make connection to the lidar via the serial channel.
     auto op_result = lidar_driver->connect(*com_channel);
     if (SL_IS_FAIL(op_result)) {
         fprintf(stderr, "Error, cannot bind to the specified serial port. Exiting..\n");
         return false;
     }
-
     // Retrieve the device info
     sl_lidar_response_device_info_t deviceInfo;
     op_result = lidar_driver->getDeviceInfo(deviceInfo);
@@ -127,18 +115,17 @@ bool setup_Lidar(sl::ILidarDriver* & lidar_driver) {
         }
         return false;
     }
-
     // print out the device serial number.
-    //printf("SLAMTEC LIDAR S/N: ");
-    //for (int pos = 0; pos < 16; ++pos) {
-    //    printf("%02X", deviceInfo.serialnum[pos]);
-    //}
+    printf("SLAMTEC LIDAR S/N: ");
+    for (int pos = 0; pos < 16; ++pos) {
+        printf("%02X", deviceInfo.serialnum[pos]);
+    }
     /// print out the device firmware and hardware version number.
-    //printf("\nModel: %d, Firmware Version: %d.%d, Hardware Version: %d\n",
-    //    deviceInfo.model,
-    //    deviceInfo.firmware_version >> 8,
-    //    deviceInfo.firmware_version & 0xffu,
-    //    deviceInfo.hardware_version);
+    printf("\nModel: %d, Firmware Version: %d.%d, Hardware Version: %d\n",
+        deviceInfo.model,
+        deviceInfo.firmware_version >> 8,
+        deviceInfo.firmware_version & 0xffu,
+        deviceInfo.hardware_version);
 
     /// Retrieve the health status
     sl_lidar_response_device_health_t healthinfo;
@@ -163,7 +150,6 @@ bool setup_Lidar(sl::ILidarDriver* & lidar_driver) {
                 return false;
             }
     }
-
     /// Use lidar's typical scan mode, to fetch scan data continuously by background thread
     lidar_driver->setMotorSpeed();
     sl::LidarScanMode outUsedScanMode;
@@ -173,7 +159,6 @@ bool setup_Lidar(sl::ILidarDriver* & lidar_driver) {
         return false;
     }
     printf(" waiting for data...\n");
-    sleep(2);
 
     return true;
 }

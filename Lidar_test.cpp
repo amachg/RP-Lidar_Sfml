@@ -65,7 +65,6 @@ int main() {
 
     /// Stop scan
     lidar_driver->stop();
-    sleep(.020);
     lidar_driver->setMotorSpeed(0);
 
     delete lidar_driver;
@@ -102,7 +101,6 @@ int main_NO_GUI() {
 
     /// Stop scan
     lidar_driver->stop();
-    sleep(.020);
     lidar_driver->setMotorSpeed(0);
 
     delete lidar_driver;
