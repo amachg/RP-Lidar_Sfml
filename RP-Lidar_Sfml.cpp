@@ -71,7 +71,7 @@ int main() {
         window.setView(camera_view);
         window.clear(sf::Color::Blue);
 
-        draw_ScanData(window, lidar_driver, nodes, nodes_count);
+        draw_Scan(window, lidar_driver, nodes, nodes_count);
 
         window.display(); // Show everything
     }

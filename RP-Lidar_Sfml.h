@@ -7,27 +7,27 @@
 #include <SFML/Graphics.hpp> // from installed SFML
  
 // App Window and View
-const sf::Vector2u wind_size(900, 900);
-sf::RenderWindow window({ wind_size.x, wind_size.y }, "RP-LIDAR Scan");
-sf::View camera_view;
+static const sf::Vector2u wind_size(900, 900);
+static sf::RenderWindow window({ wind_size.x, wind_size.y }, "RP-LIDAR Scan");
+static sf::View camera_view;
 // Graphics 
-sf::CircleShape lidar(5), motor(2), low_range(15), high_range(1200);
-const float cross_size = wind_size.x /2;
-const sf::Vertex cross[] = {
+static sf::CircleShape lidar(5), motor(2), low_range(15), high_range(1200);
+static const float cross_size = wind_size.x /2;
+static const sf::Vertex cross[] = {
     sf::Vertex({-cross_size, 0}),
     sf::Vertex({ cross_size, 0}),
     sf::Vertex({ 0, -cross_size}),
     sf::Vertex({ 0, cross_size})
 };
-const sf::Vertex origin(sf::Vector2f(0, 0), sf::Color::Red);
+static const sf::Vertex origin(sf::Vector2f(0, 0), sf::Color::Red);
 // Text
-sf::Font font;
-sf::Text text;
-char text_str[20];
+static sf::Font font;
+static sf::Text text;
 
 void setup_GUI() {
     window.setPosition({ 0, 0 }); // Placement of app window on screen
     window.setFramerateLimit(5);
+
     camera_view.setCenter(0, 0);
     //camera_view.setRotation(90);// Normally lidar motor is on the left of the Window
     //camera_view.zoom(2); // >0 means zoom-out
@@ -50,13 +50,12 @@ void setup_GUI() {
     if (!font.loadFromFile(R"(../../../arial.ttf)"))
         exit(EXIT_FAILURE);
     text.setFont(font);
-    text.setPosition(-cross_size, -cross_size);
 }
 
-sl::LidarScanMode out_used_ScanMode;
-float out_frequency;
+static sl::LidarScanMode out_used_ScanMode;
+static float out_frequency;
 
-void draw_ScanData(sf::RenderTarget& window,
+void draw_Scan(sf::RenderTarget& window,
     sl::ILidarDriver*& lidar_driver,auto& nodes, size_t count)
 {
     int max_distance_cm{ 0 };
@@ -81,12 +80,13 @@ void draw_ScanData(sf::RenderTarget& window,
         }
     }
     lidar_driver->getFrequency(out_used_ScanMode, nodes, count, out_frequency);
-    sprintf(text_str, "Frequency: %4.2f Hz\n", out_frequency );
-    text.setString(text_str);
+    static char text_chars[50];
+    sprintf(text_chars, "ScanMode: %s (%4.2f Hz)\n", out_used_ScanMode.scan_mode, out_frequency);
+    text.setString(text_chars);
     text.setPosition(-cross_size, -cross_size);
     window.draw(text);
-    sprintf(text_str, "Max ray: %4.1f m\n", max_distance_cm / 100.f);
-    text.setString(text_str);
+    sprintf(text_chars, "Max ray: %4.1f m\n", max_distance_cm / 100.f);
+    text.setString(text_chars);
     text.setPosition(-cross_size, cross_size-50);
     window.draw(text);
 
@@ -176,15 +176,14 @@ bool start_Lidar(sl::ILidarDriver*& lidar_driver) {
     lidar_driver->getAllSupportedScanModes(scanModes);
 
     if (SL_IS_FAIL(lidar_driver->
-        /// Use typical scan mode (For model A1 this is Boost)
-        startScan(false /* not force scan */,
-          true /* use typical scan mode */,
-          0, &out_used_ScanMode /* actually used scan mode */
-         )
-        /// Or select from scan modes 0->Legacy, 1->Express, 2->Boost
-        //startScan(false/* not force scan */, 
-        //    scanModes[2].id/* requested scan mode*/,
-        //    0, &out_used_ScanMode /* actually used scan mode */)
+        /// Use typical scan mode (For model A1 this is "Sensitivity")
+        //startScan(false /* not force scan */,
+        //  true /* use typical scan mode */,
+        //  0, &out_used_ScanMode /* actually used scan mode */ )
+        /// Or select from scan modes 0->Standard, else->Sensitivity
+        startScan(false/* not force scan */, 
+            scanModes[1].id/* requested scan mode*/,
+            0, &out_used_ScanMode /* actually used scan mode */ )
     )) {
         fprintf(stderr, "Error, cannot start the scan operation.\n");
         delete lidar_driver;
