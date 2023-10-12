@@ -1,6 +1,6 @@
 ﻿cmake_minimum_required(VERSION 3.22)
 
-project (Lidar_PC_SFML)
+project (RPLidar_SFML)
 set(SOURCES "RP-Lidar_Sfml.cpp")
 
 message (STATUS "Fetching SFML..")

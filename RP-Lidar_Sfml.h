@@ -177,14 +177,14 @@ bool start_Lidar(sl::ILidarDriver*& lidar_driver) {
 
     if (SL_IS_FAIL(lidar_driver->
         /// Use typical scan mode (For model A1 this is Boost)
-        //startScan(false /* not force scan */,
-        //  true /* use typical scan mode */,
-        //  0, &out_used_ScanMode /* actually used scan mode */
-        // )
+        startScan(false /* not force scan */,
+          true /* use typical scan mode */,
+          0, &out_used_ScanMode /* actually used scan mode */
+         )
         /// Or select from scan modes 0->Legacy, 1->Express, 2->Boost
-        startScan/*Express*/(false/* not force scan */, 
-            scanModes[2].id/* requested scan mode*/,
-            0, &out_used_ScanMode /* actually used scan mode */)
+        //startScan(false/* not force scan */, 
+        //    scanModes[2].id/* requested scan mode*/,
+        //    0, &out_used_ScanMode /* actually used scan mode */)
     )) {
         fprintf(stderr, "Error, cannot start the scan operation.\n");
         delete lidar_driver;
