@@ -81,7 +81,7 @@ void draw_Scan(sf::RenderTarget& window,
     }
     lidar_driver->getFrequency(out_used_ScanMode, nodes, count, out_frequency);
     static char text_chars[50];
-    sprintf(text_chars, "ScanMode: %s (%4.2f Hz)\n", out_used_ScanMode.scan_mode, out_frequency);
+    sprintf(text_chars, "ScanMode: %s (%4.1f Hz)\n", out_used_ScanMode.scan_mode, out_frequency);
     text.setString(text_chars);
     text.setPosition(-cross_size, -cross_size);
     window.draw(text);
@@ -171,19 +171,16 @@ bool print_infos(sl::ILidarDriver*& lidar_driver) {
 bool start_Lidar(sl::ILidarDriver*& lidar_driver) {
     //lidar_driver->setMotorSpeed();
 
-    /// Select scan mode, to fetch scan data by background thread
+    /// Select a scan mode to fetch scan data by the background thread.
+    /// Use typical scan mode (For last model A1 this is "Sensitivity"),
+    /// or select other scan modes (0->Standard, else->Sensitivity).
     std::vector<sl::LidarScanMode> scanModes;
     lidar_driver->getAllSupportedScanModes(scanModes);
 
-    if (SL_IS_FAIL(lidar_driver->
-        /// Use typical scan mode (For model A1 this is "Sensitivity")
-        //startScan(false /* not force scan */,
-        //  true /* use typical scan mode */,
-        //  0, &out_used_ScanMode /* actually used scan mode */ )
-        /// Or select from scan modes 0->Standard, else->Sensitivity
-        startScan(false/* not force scan */, 
-            scanModes[1].id/* requested scan mode*/,
-            0, &out_used_ScanMode /* actually used scan mode */ )
+    if (SL_IS_FAIL(lidar_driver->startScan( false, //dont force
+        //true // typical scan mode
+        scanModes[2].id //requested scanMode
+            , 0, &out_used_ScanMode)
     )) {
         fprintf(stderr, "Error, cannot start the scan operation.\n");
         delete lidar_driver;

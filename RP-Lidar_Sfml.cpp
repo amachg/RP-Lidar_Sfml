@@ -15,11 +15,11 @@
 * 
 * RPLIDAR A1M8 performs a 360° scan, within a 15cm..12m range.
 * Scanning sampling Frequency(kHz) : 2k, 4k, 8k (default in Firmware ver: 1.29)
-* Round Scan Rate(Hz) : 5.5 by default, (or customized from 2 to 10 by motor control)
+* Round Scan Rate : 5.5 Hz by default
 * Angular Resolution ≤ 1°
 * Sample Duration 0.125 milliseconds
 * UART @ 115200 bps
-* For accuracy, pre-heat for 2' (Start the scan mode and the motor).
+* For accuracy, pre-heat for 2'.
  */
 
 #include "RP-Lidar_Sfml.h"
