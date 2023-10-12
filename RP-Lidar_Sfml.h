@@ -1,34 +1,23 @@
-﻿/* Lidar_test.h : project specific include file
-*
-* RPLIDAR A1M8 can perform a 360° scan, within a 15cm..12m range.
-* For accuracy, pre - heat for 2' (Start the scan mode and the motor).
-*
-*Firmware Version : 1.29 (new default scan mode is : Boost)
-* Sample Frequency(kHz) : Normal scan mode = 2k, Express = 4k, Boost = 8k
-* Round Scan Rate(Hz) : 5.5 by default, or 2 - 10
-* Angular Resolution ≤ 1°
-* Sample Duration 0.125 milliseconds
-* UART @ 115200 bps
-*
+﻿/*
+* RP-Lidar_Sfml.h
 */
 
 #pragma once
-#include <sl_lidar.h> //RPLIDAR sdk
-#include <SFML/Graphics.hpp>
-
-// GLOBALS 
+#include <sl_lidar.h>        // from installed RPLIDAR sdk
+#include <SFML/Graphics.hpp> // from installed SFML
+ 
 // App Window and View
 const sf::Vector2u wind_size(900, 900);
 sf::RenderWindow window({ wind_size.x, wind_size.y }, "RP-LIDAR Scan");
 sf::View camera_view;
 // Graphics 
-sf::CircleShape lidar(20), motor(10);
-const float cross_size = 450;
-const sf::Vertex cross_lines[] = {
+sf::CircleShape lidar(5), motor(2), low_range(15), high_range(1200);
+const float cross_size = 500;
+const sf::Vertex cross[] = {
     sf::Vertex({-cross_size, 0}),
     sf::Vertex({ cross_size, 0}),
-    sf::Vertex({ 0,         -cross_size}),
-    sf::Vertex({ 0,          cross_size})
+    sf::Vertex({ 0, -cross_size}),
+    sf::Vertex({ 0, cross_size})
 };
 const sf::Vertex origin(sf::Vector2f(0, 0), sf::Color::Red);
 // Text
@@ -46,10 +35,17 @@ void setup_GUI() {
 
     lidar.setFillColor(sf::Color::Black);
     lidar.setOutlineThickness(1);
-    lidar.setOrigin(lidar.getRadius(), lidar.getRadius());//relative to top-left corner of object
+    // covert origin from top-left corner of object to its center
+    lidar.setOrigin(lidar.getRadius(), lidar.getRadius());
     motor.setFillColor(lidar.getFillColor());
     motor.setOutlineThickness(1);
     motor.setOrigin(lidar.getRadius()+ motor.getRadius(), motor.getRadius());
+    low_range.setFillColor(sf::Color::Transparent);
+    low_range.setOutlineThickness(1);
+    low_range.setOrigin(low_range.getRadius(), low_range.getRadius());
+    high_range.setFillColor(sf::Color::Transparent);
+    high_range.setOutlineThickness(1);
+    high_range.setOrigin(high_range.getRadius(), high_range.getRadius());
 
     if (!font.loadFromFile(R"(../../../arial.ttf)"))
         exit(EXIT_FAILURE);
@@ -57,35 +53,44 @@ void setup_GUI() {
     text.setPosition(-cross_size, -cross_size);
 }
 
-void draw_all(sf::RenderTarget& window, auto& nodes, size_t count) {
-    static int max_distance_mm{ 0 };
+sl::LidarScanMode out_used_ScanMode;
+
+void draw_ScanData(sf::RenderTarget& window,
+    sl::ILidarDriver*& lidar_driver,auto& nodes, size_t count)
+{
+    int max_distance_mm{ 0 };
     for (size_t i = 0; i < count; ++i) {
         const auto& node = nodes[i];
         const int quality = node.quality >> SL_LIDAR_RESP_MEASUREMENT_QUALITY_SHIFT;
         if (quality > 0) {
             const auto start_node = node.flag & SL_LIDAR_RESP_HQ_FLAG_SYNCBIT ? "Start " : "      ";
             const float theta_deg = node.angle_z_q14 * 90.f / 16384;
-            static constexpr auto pi{ 3.141592654f };
-            const float theta_rad = theta_deg * pi / 180;
+            static constexpr auto to_rads = [](const int degrees) {return degrees * 3.141592654f / 180;};
+            const float theta_rad = to_rads( theta_deg );
             const int distance_mm = node.dist_mm_q2 / 4;
-            static constexpr auto max = [](const int& a, const int& b) {
-                return a > b ? a : b; 
-            };
+
+            static constexpr auto max = [](const int& a, const int& b) {return a > b ? a : b;};
             max_distance_mm = max(distance_mm, max_distance_mm);
+
             const sf::Vector2f endpoint_cm(
-                distance_mm * cos(theta_rad) /10,
-                distance_mm * sin(theta_rad) /10);
+                distance_mm * cos(theta_rad) / 10,
+                distance_mm * sin(theta_rad) / 10);
             const sf::Vertex ray[] = { origin, sf::Vertex(endpoint_cm) };
             window.draw(ray, 2, sf::Lines);
         }
     }
-    sprintf(text_str, "Max(m): %d\n", max_distance_mm / 10'000);
+    static float frequency;
+    lidar_driver->getFrequency(out_used_ScanMode, nodes, count, frequency);
+    sprintf(text_str, "Frequency: %4f Hz\n", frequency);
+    //sprintf(text_str, "Max ray: %4.2f cm\n", max_distance_mm / 1'000.f);
     text.setString(text_str);
     window.draw(text);
-    window.draw(cross_lines, 2, sf::Lines);
-    window.draw(&cross_lines[2], 2, sf::Lines);
+    window.draw( cross,    2, sf::Lines);
+    window.draw(&cross[2], 2, sf::Lines);
     window.draw(motor);
     window.draw(lidar);
+    window.draw(low_range);
+    window.draw(high_range);
 }
 
 bool setup_Lidar(sl::ILidarDriver* & lidar_driver) {
@@ -96,7 +101,7 @@ bool setup_Lidar(sl::ILidarDriver* & lidar_driver) {
         return false;
     }
     ///  Create a LIDAR communication channel in Linux or Win32
-    auto com_device = "com5";    // "/dev/ttyUSB0" for Linux
+    auto com_device = "com4";    // "/dev/ttyUSB0" for Linux
     auto com_channel = sl::createSerialPortChannel(com_device, 115200);
     /// Make connection to the lidar via the serial channel.
     auto op_result = lidar_driver->connect(*com_channel);
@@ -104,17 +109,22 @@ bool setup_Lidar(sl::ILidarDriver* & lidar_driver) {
         fprintf(stderr, "Error, cannot bind to the specified serial port. Exiting..\n");
         return false;
     }
+    return true;
+}
+
+bool print_Lidar_info(sl::ILidarDriver*& lidar_driver) {
     // Retrieve the device info
     sl_lidar_response_device_info_t deviceInfo;
-    op_result = lidar_driver->getDeviceInfo(deviceInfo);
+    auto op_result = lidar_driver->getDeviceInfo(deviceInfo);
     if (SL_IS_FAIL(op_result)) {
         if (op_result == SL_RESULT_OPERATION_TIMEOUT) {
-            fprintf(stderr, "Error, could not get device info, operation time out.\n");
+            fprintf(stderr, "Error, no device info, operation time out.\n");
         } else {
-            fprintf(stderr, "Error, could not get device info, unexpected error, code: %x\n", op_result);
+            fprintf(stderr, "Error, no device info, error code: %x\n", op_result);
         }
         return false;
     }
+
     // print out the device serial number.
     printf("SLAMTEC LIDAR S/N: ");
     for (int pos = 0; pos < 16; ++pos) {
@@ -150,16 +160,31 @@ bool setup_Lidar(sl::ILidarDriver* & lidar_driver) {
                 return false;
             }
     }
-    /// Use lidar's typical scan mode, to fetch scan data continuously by background thread
-    lidar_driver->setMotorSpeed();
-    sl::LidarScanMode outUsedScanMode;
-    if (SL_IS_FAIL(lidar_driver->startScan( false, true, 0, &outUsedScanMode))) {
+    return true;
+}
+
+bool start_Lidar(sl::ILidarDriver*& lidar_driver, sl::LidarScanMode& out_used_ScanMode) {
+    //lidar_driver->setMotorSpeed();
+
+    /// Select scan mode, to fetch scan data by background thread
+    std::vector<sl::LidarScanMode> scanModes;
+    lidar_driver->getAllSupportedScanModes(scanModes);
+
+    if (SL_IS_FAIL(lidar_driver->
+        /// Use typical scan mode (For model A1 this is Boost)
+        //startScan(false /* not force scan */,
+        //  true /* use typical scan mode */,
+        //  0, &out_used_ScanMode /* actually used scan mode */
+        // )
+        /// Or select from scan modes 0->Legacy, 1->Express, 2->Boost
+        startScan/*Express*/(false/* not force scan */, 
+            scanModes[2].id/* requested scan mode*/,
+            0, &out_used_ScanMode /* actually used scan mode */)
+    )) {
         fprintf(stderr, "Error, cannot start the scan operation.\n");
         delete lidar_driver;
         return false;
     }
-    printf(" waiting for data...\n");
-
     return true;
 }
 
@@ -181,7 +206,7 @@ void print_data(sl_lidar_response_measurement_node_hq_t* nodes, size_t count) {
     }
 }
 
-void plot_histogram(sl_lidar_response_measurement_node_hq_t* nodes, size_t count) {
+void print_histogram(sl_lidar_response_measurement_node_hq_t* nodes, size_t count) {
     const size_t bars_number = 230;//best 360
     const size_t bars_height = 50;
 

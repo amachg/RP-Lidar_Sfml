@@ -1,7 +1,7 @@
 ﻿cmake_minimum_required(VERSION 3.22)
 
 project (Lidar_PC_SFML)
-set(SOURCES "Lidar_test.cpp")
+set(SOURCES "RP-Lidar_Sfml.cpp")
 
 message (STATUS "Fetching SFML..")
 set(SFML_BUILD_NETWORK SFML_BUILD_AUDIO FALSE)
