@@ -12,7 +12,7 @@ sf::RenderWindow window({ wind_size.x, wind_size.y }, "RP-LIDAR Scan");
 sf::View camera_view;
 // Graphics 
 sf::CircleShape lidar(5), motor(2), low_range(15), high_range(1200);
-const float cross_size = 500;
+const float cross_size = wind_size.x /2;
 const sf::Vertex cross[] = {
     sf::Vertex({-cross_size, 0}),
     sf::Vertex({ cross_size, 0}),
@@ -26,19 +26,19 @@ sf::Text text;
 char text_str[20];
 
 void setup_GUI() {
-    window.setPosition({ 150, 0 }); // Placement of app window on screen
+    window.setPosition({ 0, 0 }); // Placement of app window on screen
     window.setFramerateLimit(5);
     camera_view.setCenter(0, 0);
     //camera_view.setRotation(90);// Normally lidar motor is on the left of the Window
-    camera_view.zoom(1); // >0 means zoom-out
+    //camera_view.zoom(2); // >0 means zoom-out
     window.setView(camera_view);
 
     lidar.setFillColor(sf::Color::Black);
-    lidar.setOutlineThickness(1);
+    //lidar.setOutlineThickness(1);
     // covert origin from top-left corner of object to its center
     lidar.setOrigin(lidar.getRadius(), lidar.getRadius());
     motor.setFillColor(lidar.getFillColor());
-    motor.setOutlineThickness(1);
+    //motor.setOutlineThickness(1);
     motor.setOrigin(lidar.getRadius()+ motor.getRadius(), motor.getRadius());
     low_range.setFillColor(sf::Color::Transparent);
     low_range.setOutlineThickness(1);
@@ -81,11 +81,13 @@ void draw_ScanData(sf::RenderTarget& window,
         }
     }
     lidar_driver->getFrequency(out_used_ScanMode, nodes, count, out_frequency);
-    //sprintf(text_str, "Frequency: %4.2f Hz\n", out_frequency );
-    sprintf(text_str, "Frequency: %4.2f Hz, Max ray: %4.2f cm\n", 
-        out_frequency, max_distance_cm);
-
+    sprintf(text_str, "Frequency: %4.2f Hz\n", out_frequency );
     text.setString(text_str);
+    text.setPosition(-cross_size, -cross_size);
+    window.draw(text);
+    sprintf(text_str, "Max ray: %4.1f m\n", max_distance_cm / 100.f);
+    text.setString(text_str);
+    text.setPosition(-cross_size, cross_size-50);
     window.draw(text);
 
     window.draw( cross,    2, sf::Lines);
@@ -210,7 +212,7 @@ void print_data(sl_lidar_response_measurement_node_hq_t* nodes, size_t count) {
 }
 
 void print_histogram(sl_lidar_response_measurement_node_hq_t* nodes, size_t count) {
-    const size_t bars_number = 230;//best 360
+    const size_t bars_number = 120;//best 360
     const size_t bars_height = 50;
 
     size_t histogram[bars_number];
