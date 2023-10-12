@@ -26,7 +26,7 @@ sf::Text text;
 char text_str[20];
 
 void setup_GUI() {
-    window.setPosition({ 0,0 }); // Placement of app window on screen
+    window.setPosition({ 150, 0 }); // Placement of app window on screen
     window.setFramerateLimit(5);
     camera_view.setCenter(0, 0);
     //camera_view.setRotation(90);// Normally lidar motor is on the left of the Window
@@ -54,11 +54,12 @@ void setup_GUI() {
 }
 
 sl::LidarScanMode out_used_ScanMode;
+float out_frequency;
 
 void draw_ScanData(sf::RenderTarget& window,
     sl::ILidarDriver*& lidar_driver,auto& nodes, size_t count)
 {
-    int max_distance_mm{ 0 };
+    int max_distance_cm{ 0 };
     for (size_t i = 0; i < count; ++i) {
         const auto& node = nodes[i];
         const int quality = node.quality >> SL_LIDAR_RESP_MEASUREMENT_QUALITY_SHIFT;
@@ -68,23 +69,25 @@ void draw_ScanData(sf::RenderTarget& window,
             static constexpr auto to_rads = [](const int degrees) {return degrees * 3.141592654f / 180;};
             const float theta_rad = to_rads( theta_deg );
             const int distance_mm = node.dist_mm_q2 / 4;
+            const int distance_cm = distance_mm / 10;
 
             static constexpr auto max = [](const int& a, const int& b) {return a > b ? a : b;};
-            max_distance_mm = max(distance_mm, max_distance_mm);
+            max_distance_cm = max(distance_cm, max_distance_cm);
 
-            const sf::Vector2f endpoint_cm(
-                distance_mm * cos(theta_rad) / 10,
-                distance_mm * sin(theta_rad) / 10);
+            const sf::Vector2f endpoint_cm( cos(theta_rad) * distance_cm,
+                                            sin(theta_rad) * distance_cm);
             const sf::Vertex ray[] = { origin, sf::Vertex(endpoint_cm) };
             window.draw(ray, 2, sf::Lines);
         }
     }
-    static float frequency;
-    lidar_driver->getFrequency(out_used_ScanMode, nodes, count, frequency);
-    sprintf(text_str, "Frequency: %4f Hz\n", frequency);
-    //sprintf(text_str, "Max ray: %4.2f cm\n", max_distance_mm / 1'000.f);
+    lidar_driver->getFrequency(out_used_ScanMode, nodes, count, out_frequency);
+    //sprintf(text_str, "Frequency: %4.2f Hz\n", out_frequency );
+    sprintf(text_str, "Frequency: %4.2f Hz, Max ray: %4.2f cm\n", 
+        out_frequency, max_distance_cm);
+
     text.setString(text_str);
     window.draw(text);
+
     window.draw( cross,    2, sf::Lines);
     window.draw(&cross[2], 2, sf::Lines);
     window.draw(motor);
@@ -112,7 +115,7 @@ bool setup_Lidar(sl::ILidarDriver* & lidar_driver) {
     return true;
 }
 
-bool print_Lidar_info(sl::ILidarDriver*& lidar_driver) {
+bool print_infos(sl::ILidarDriver*& lidar_driver) {
     // Retrieve the device info
     sl_lidar_response_device_info_t deviceInfo;
     auto op_result = lidar_driver->getDeviceInfo(deviceInfo);
@@ -163,7 +166,7 @@ bool print_Lidar_info(sl::ILidarDriver*& lidar_driver) {
     return true;
 }
 
-bool start_Lidar(sl::ILidarDriver*& lidar_driver, sl::LidarScanMode& out_used_ScanMode) {
+bool start_Lidar(sl::ILidarDriver*& lidar_driver) {
     //lidar_driver->setMotorSpeed();
 
     /// Select scan mode, to fetch scan data by background thread

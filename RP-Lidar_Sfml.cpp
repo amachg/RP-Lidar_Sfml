@@ -28,9 +28,9 @@ int main() {
     setup_GUI();
     // Setup Lidar driver, serial data channel and check health status.
     sl::ILidarDriver* lidar_driver{};
-    if (  !setup_Lidar(lidar_driver)
-        ||!print_Lidar_info(lidar_driver)
-        ||!start_Lidar(lidar_driver)
+    if(!setup_Lidar(lidar_driver)
+    || !print_infos(lidar_driver)
+    || !start_Lidar(lidar_driver)
         ) {
         return false;
     }
@@ -83,9 +83,9 @@ int main() {
 int main_NO_GUI() {
     /// Setup Lidar driver, serial data channel and check health status.
     sl::ILidarDriver* lidar_driver{};
-    if (   !setup_Lidar(lidar_driver)
-        || !print_Lidar_info(lidar_driver)
-        || !start_Lidar(lidar_driver)
+    if(!setup_Lidar(lidar_driver)
+    || !print_infos(lidar_driver)
+    || !start_Lidar(lidar_driver)
         ) {
         return false;
     }
