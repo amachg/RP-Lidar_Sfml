@@ -19,18 +19,17 @@ static const sf::Vertex cross[] = {
     sf::Vertex({ 0, -cross_size}),
     sf::Vertex({ 0, cross_size})
 };
-static const sf::Vertex origin(sf::Vector2f(0, 0), sf::Color::Red);
 // Text
 static sf::Font font;
 static sf::Text text;
 
 void setup_GUI() {
     window.setPosition({ 0, 0 }); // Placement of app window on screen
-    window.setFramerateLimit(5);
+    window.setFramerateLimit(1);
 
     camera_view.setCenter(0, 0);
     //camera_view.setRotation(90);// Normally lidar motor is on the left of the Window
-    //camera_view.zoom(2); // >0 means zoom-out
+    camera_view.zoom(1.5); // >1 means zoom-out
     window.setView(camera_view);
 
     lidar.setFillColor(sf::Color::Black);
@@ -52,20 +51,22 @@ void setup_GUI() {
     text.setFont(font);
 }
 
-static sl::LidarScanMode out_used_ScanMode;
-static float out_frequency;
+static sl::LidarScanMode actual_ScanMode;
+static float actual_freq;
 
 void draw_Scan(sf::RenderTarget& window,
     sl::ILidarDriver*& lidar_driver,auto& nodes, size_t count)
 {
     int max_distance_cm{ 0 };
+    sf::Vector2f prev_endpoint{};
     for (size_t i = 0; i < count; ++i) {
         const auto& node = nodes[i];
         const int quality = node.quality >> SL_LIDAR_RESP_MEASUREMENT_QUALITY_SHIFT;
         if (quality > 0) {
             const auto start_node = node.flag & SL_LIDAR_RESP_HQ_FLAG_SYNCBIT ? "Start " : "      ";
             const float theta_deg = node.angle_z_q14 * 90.f / 16384;
-            static constexpr auto to_rads = [](const int degrees) {return degrees * 3.141592654f / 180;};
+            static constexpr auto to_rads = [](const int degrees) {
+                return degrees * 3.141592654f / 180;};
             const float theta_rad = to_rads( theta_deg );
             const int distance_mm = node.dist_mm_q2 / 4;
             const int distance_cm = distance_mm / 10;
@@ -75,25 +76,34 @@ void draw_Scan(sf::RenderTarget& window,
 
             const sf::Vector2f endpoint_cm( cos(theta_rad) * distance_cm,
                                             sin(theta_rad) * distance_cm);
-            const sf::Vertex ray[] = { origin, sf::Vertex(endpoint_cm) };
-            window.draw(ray, 2, sf::Lines);
+            static const sf::Vertex origin(sf::Vector2f(0, 0), sf::Color::Red);
+            //const sf::Vertex ray[] = { origin, endpoint_cm };
+            //window.draw(ray, 2, sf::Lines);
+            const sf::Vertex join_prev[] = { prev_endpoint, endpoint_cm};
+            window.draw(join_prev, 2, sf::Lines);
+            prev_endpoint = endpoint_cm;
         }
     }
-    lidar_driver->getFrequency(out_used_ScanMode, nodes, count, out_frequency);
+
+    lidar_driver->getFrequency(actual_ScanMode, nodes, count, actual_freq);
     static char text_chars[50];
-    sprintf(text_chars, "ScanMode: %s (%4.1f Hz)\n", out_used_ScanMode.scan_mode, out_frequency);
+    sprintf(text_chars, "ScanMode: %s, Spinning:%4.1f Hz, Sampling: %.1f KS/sec\n", 
+        actual_ScanMode.scan_mode, actual_freq, 1000 / actual_ScanMode.us_per_sample);
     text.setString(text_chars);
     text.setPosition(-cross_size, -cross_size);
     window.draw(text);
-    sprintf(text_chars, "Max ray: %4.1f m\n", max_distance_cm / 100.f);
+
+    sprintf(text_chars, "Max ray: %4.1f meter\n", max_distance_cm / 100.f);
     text.setString(text_chars);
     text.setPosition(-cross_size, cross_size-50);
     window.draw(text);
 
     window.draw( cross,    2, sf::Lines);
     window.draw(&cross[2], 2, sf::Lines);
+
     window.draw(motor);
     window.draw(lidar);
+
     window.draw(low_range);
     window.draw(high_range);
 }
@@ -169,19 +179,17 @@ bool print_infos(sl::ILidarDriver*& lidar_driver) {
 }
 
 bool start_Lidar(sl::ILidarDriver*& lidar_driver) {
-    //lidar_driver->setMotorSpeed();
-
     /// Select a scan mode to fetch scan data by the background thread.
     /// Use typical scan mode (For last model A1 this is "Sensitivity"),
-    /// or select other scan modes (0->Standard, else->Sensitivity).
+    /// or select mode (0->Standard, 1->Express, 2->Boost, 3->Sensitivity 4->Stability).
     std::vector<sl::LidarScanMode> scanModes;
     lidar_driver->getAllSupportedScanModes(scanModes);
 
-    if (SL_IS_FAIL(lidar_driver->startScan( false, //dont force
-        //true // typical scan mode
-        scanModes[2].id //requested scanMode
-            , 0, &out_used_ScanMode)
-    )) {
+    auto op_result = lidar_driver->
+        //startScan(false /*not force scan*/, true /*Use typical scan mode*/,
+        startScanExpress(false, scanModes[2].id, // Select scan Mode
+        0, &actual_ScanMode);
+    if (SL_IS_FAIL(op_result)) {
         fprintf(stderr, "Error, cannot start the scan operation.\n");
         delete lidar_driver;
         return false;

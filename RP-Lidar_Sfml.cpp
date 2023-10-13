@@ -14,7 +14,7 @@
 *      SFML graphic framework (installed by cmake) 
 * 
 * RPLIDAR A1M8 performs a 360° scan, within a 15cm..12m range.
-* Scanning sampling Frequency(kHz) : 2k, 4k, 8k (default in Firmware ver: 1.29)
+* Max Sample Rate (samples per sec) : 2k, 4k, 8k(default in Firmware ver: 1.29)
 * Round Scan Rate : 5.5 Hz by default
 * Angular Resolution ≤ 1°
 * Sample Duration 0.125 milliseconds
@@ -26,17 +26,17 @@
 
 int main() {
     setup_GUI();
+
     // Setup Lidar driver, serial data channel and check health status.
     sl::ILidarDriver* lidar_driver{};
     if(!setup_Lidar(lidar_driver)
     //|| !print_infos(lidar_driver)
     || !start_Lidar(lidar_driver)
-        ) {
-        return false;
-    }
-    constexpr const size_t array_size{ 8192 };
-    sl_lidar_response_measurement_node_hq_t nodes[array_size];
-    size_t nodes_count{ array_size };
+        ) return false;
+
+    static constexpr size_t array_size{ 8192 };
+    static sl_lidar_response_measurement_node_hq_t nodes[array_size];
+    static size_t nodes_count{ array_size };
 
     sf::Event event;
     while (window.isOpen()) {
