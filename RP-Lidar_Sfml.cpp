@@ -13,13 +13,10 @@
 *      CMake build system (tested in VisualStudio2023)
 *      SFML graphic framework (installed by cmake) 
 * 
-* RPLIDAR A1M8 performs a 360° scan, within a 15cm..12m range.
-* Max Sample Rate (samples per sec) : 2k, 4k, 8k(default in Firmware ver: 1.29)
-* Round Scan Rate : 5.5 Hz by default
-* Angular Resolution ≤ 1°
-* Sample Duration 0.125 milliseconds
-* UART @ 115200 bps
-* For accuracy, pre-heat for 2'.
+* RPLIDAR A1M8 performs a 360° scan, in a 0.15-12m disk,
+* Sample Rate (KSa/s) : 2, 4, 8 (=default in Firmware ver: 1.29)
+* Scan Rate from 2-10 Hz, Can Adjust By Motor PWM Signal,
+* actual 7.5 Hz (450 RPM) or 1053 samples per round
  */
 
 #include "RP-Lidar_Sfml.h"

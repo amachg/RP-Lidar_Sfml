@@ -25,7 +25,7 @@ static sf::Text text;
 
 void setup_GUI() {
     window.setPosition({ 0, 0 }); // Placement of app window on screen
-    window.setFramerateLimit(1);
+    window.setFramerateLimit(5);
 
     camera_view.setCenter(0, 0);
     //camera_view.setRotation(90);// Normally lidar motor is on the left of the Window
@@ -79,6 +79,7 @@ void draw_Scan(sf::RenderTarget& window,
             static const sf::Vertex origin(sf::Vector2f(0, 0), sf::Color::Red);
             //const sf::Vertex ray[] = { origin, endpoint_cm };
             //window.draw(ray, 2, sf::Lines);
+
             const sf::Vertex join_prev[] = { prev_endpoint, endpoint_cm};
             window.draw(join_prev, 2, sf::Lines);
             prev_endpoint = endpoint_cm;
@@ -87,7 +88,7 @@ void draw_Scan(sf::RenderTarget& window,
 
     lidar_driver->getFrequency(actual_ScanMode, nodes, count, actual_freq);
     static char text_chars[50];
-    sprintf(text_chars, "ScanMode: %s, Spinning:%4.1f Hz, Sampling: %.1f KS/sec\n", 
+    sprintf(text_chars, "ScanMode: %s, Spin rate: %4.1f Hz, Sampling: %.1f KS/sec\n", 
         actual_ScanMode.scan_mode, actual_freq, 1000 / actual_ScanMode.us_per_sample);
     text.setString(text_chars);
     text.setPosition(-cross_size, -cross_size);
