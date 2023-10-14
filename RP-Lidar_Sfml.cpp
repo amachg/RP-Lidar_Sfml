@@ -1,5 +1,5 @@
 ﻿/*
-* RoboPeak/Slamtec LIDAR scan display using SFML graphics
+* Slamtec RPLIDAR A1M8 scan display using SFML graphics
 * 
 * This code reads point clouds data from a RPLIDAR Device
 * and displays the output on an SFML display window in realtime.
@@ -15,9 +15,10 @@
 * 
 * RPLIDAR A1M8 performs a 360° scan, in a 0.15-12m disk,
 * Sample Rate (KSa/s) : 2, 4, 8 (=default in Firmware ver: 1.29)
-* Scan Rate from 2-10 Hz, Can Adjust By Motor PWM Signal,
-* actual 7.5 Hz (450 RPM) or 1053 samples per round
- */
+* Scan Rate 7.5Hz (450 RPM or 1053 samples per round), 
+* can be adjusted 2-10 Hz, by Motor PWM Signal
+* 
+*/
 
 #include "RP-Lidar_Sfml.h"
 
@@ -27,7 +28,7 @@ int main() {
     // Setup Lidar driver, serial data channel and check health status.
     sl::ILidarDriver* lidar_driver{};
     if(!setup_Lidar(lidar_driver)
-    //|| !print_infos(lidar_driver)
+    || !print_infos(lidar_driver)
     || !start_Lidar(lidar_driver)
         ) return false;
 

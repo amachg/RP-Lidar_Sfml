@@ -7,19 +7,20 @@
 #include <SFML/Graphics.hpp> // from installed SFML
  
 // App Window and View
-static const sf::Vector2u wind_size(900, 900);
+static const sf::Vector2u wind_size(985, 985);
 static sf::RenderWindow window({ wind_size.x, wind_size.y }, "RP-LIDAR Scan");
 static sf::View camera_view;
 // Graphics 
 static sf::CircleShape lidar(5), motor(2), low_range(15), high_range(1200);
-static const float cross_size = wind_size.x /2;
+static const float cross_size = 1.22 * wind_size.x;
 static const sf::Vertex cross[] = {
-    sf::Vertex({-cross_size, 0}),
-    sf::Vertex({ cross_size, 0}),
-    sf::Vertex({ 0, -cross_size}),
-    sf::Vertex({ 0, cross_size})
+    sf::Vertex({-cross_size, 0}, sf::Color::Red),
+    sf::Vertex({ cross_size, 0}, sf::Color::Red),
+    sf::Vertex({ 0, -cross_size}, sf::Color::Red),
+    sf::Vertex({ 0, cross_size}, sf::Color::Red)
 };
 // Text
+static const float text_pos = wind_size.x / 2;
 static sf::Font font;
 static sf::Text text;
 
@@ -29,21 +30,22 @@ void setup_GUI() {
 
     camera_view.setCenter(0, 0);
     //camera_view.setRotation(90);// Normally lidar motor is on the left of the Window
-    camera_view.zoom(1.5); // >1 means zoom-out
+    camera_view.zoom(1.1); // >1 means zoom-out
     window.setView(camera_view);
 
     lidar.setFillColor(sf::Color::Black);
-    //lidar.setOutlineThickness(1);
     // covert origin from top-left corner of object to its center
     lidar.setOrigin(lidar.getRadius(), lidar.getRadius());
     motor.setFillColor(lidar.getFillColor());
-    //motor.setOutlineThickness(1);
-    motor.setOrigin(lidar.getRadius()+ motor.getRadius(), motor.getRadius());
+    motor.setOrigin(lidar.getRadius() + motor.getRadius(), motor.getRadius());
+
     low_range.setFillColor(sf::Color::Transparent);
     low_range.setOutlineThickness(1);
+    low_range.setOutlineColor(sf::Color::Red);
     low_range.setOrigin(low_range.getRadius(), low_range.getRadius());
     high_range.setFillColor(sf::Color::Transparent);
     high_range.setOutlineThickness(1);
+    high_range.setOutlineColor(sf::Color::Red);
     high_range.setOrigin(high_range.getRadius(), high_range.getRadius());
 
     if (!font.loadFromFile(R"(../../../arial.ttf)"))
@@ -57,30 +59,38 @@ static float actual_freq;
 void draw_Scan(sf::RenderTarget& window,
     sl::ILidarDriver*& lidar_driver,auto& nodes, size_t count)
 {
-    int max_distance_cm{ 0 };
+    auto min_dist_cm{ static_cast<unsigned>(high_range.getRadius()) };
+    auto max_dist_cm{ static_cast<unsigned>(low_range.getRadius()) };
+    unsigned min_dist_theta{}, max_dist_theta{};
     sf::Vector2f prev_endpoint{};
+
     for (size_t i = 0; i < count; ++i) {
         const auto& node = nodes[i];
         const int quality = node.quality >> SL_LIDAR_RESP_MEASUREMENT_QUALITY_SHIFT;
         if (quality > 0) {
-            const auto start_node = node.flag & SL_LIDAR_RESP_HQ_FLAG_SYNCBIT ? "Start " : "      ";
+            const auto start_node = node.flag & SL_LIDAR_RESP_HQ_FLAG_SYNCBIT ?
+                "Start " : "      ";
             const float theta_deg = node.angle_z_q14 * 90.f / 16384;
-            static constexpr auto to_rads = [](const int degrees) {
-                return degrees * 3.141592654f / 180;};
-            const float theta_rad = to_rads( theta_deg );
             const int distance_mm = node.dist_mm_q2 / 4;
             const int distance_cm = distance_mm / 10;
 
-            static constexpr auto max = [](const int& a, const int& b) {return a > b ? a : b;};
-            max_distance_cm = max(distance_cm, max_distance_cm);
+            if (distance_cm < min_dist_cm) {
+                min_dist_cm = distance_cm;
+                min_dist_theta = static_cast<unsigned>(theta_deg);
+            }
+            if (distance_cm > max_dist_cm) {
+                max_dist_cm = distance_cm;
+                max_dist_theta = static_cast<unsigned>(theta_deg);
+            }
 
+            const float theta_rad = theta_deg * 3.14159f / 180;
             const sf::Vector2f endpoint_cm( cos(theta_rad) * distance_cm,
                                             sin(theta_rad) * distance_cm);
-            static const sf::Vertex origin(sf::Vector2f(0, 0), sf::Color::Red);
+            //static const sf::Vertex origin(sf::Vector2f(0, 0), sf::Color::Red);
             //const sf::Vertex ray[] = { origin, endpoint_cm };
             //window.draw(ray, 2, sf::Lines);
 
-            const sf::Vertex join_prev[] = { prev_endpoint, endpoint_cm};
+            const sf::Vertex join_prev[] = { prev_endpoint, endpoint_cm };
             window.draw(join_prev, 2, sf::Lines);
             prev_endpoint = endpoint_cm;
         }
@@ -88,15 +98,17 @@ void draw_Scan(sf::RenderTarget& window,
 
     lidar_driver->getFrequency(actual_ScanMode, nodes, count, actual_freq);
     static char text_chars[50];
-    sprintf(text_chars, "ScanMode: %s, Spin rate: %4.1f Hz, Sampling: %.1f KS/sec\n", 
-        actual_ScanMode.scan_mode, actual_freq, 1000 / actual_ScanMode.us_per_sample);
+    sprintf(text_chars, "Mode: %s, Scan-rate:%4.1f rps (%u rpm), Sampling:%1.1f Ksps (%.0f spr)\n", 
+        actual_ScanMode.scan_mode, actual_freq, static_cast<unsigned>(60 * actual_freq), 
+        1000 / actual_ScanMode.us_per_sample, 1000000 / (actual_ScanMode.us_per_sample * actual_freq) );
     text.setString(text_chars);
-    text.setPosition(-cross_size, -cross_size);
+    text.setPosition(-text_pos, -text_pos);
     window.draw(text);
 
-    sprintf(text_chars, "Max ray: %4.1f meter\n", max_distance_cm / 100.f);
+    sprintf(text_chars, "Scan distance (cm): min=%u at heading:%u\tmax=%u at heading:%u\n", 
+        min_dist_cm, min_dist_theta, max_dist_cm, max_dist_theta);
     text.setString(text_chars);
-    text.setPosition(-cross_size, cross_size-50);
+    text.setPosition(-text_pos, text_pos - 50);
     window.draw(text);
 
     window.draw( cross,    2, sf::Lines);
