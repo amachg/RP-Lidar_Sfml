@@ -117,7 +117,7 @@ void draw_Scan(sf::RenderTarget& window,
     text.setPosition(-text_pos, text_pos - 50);
     window.draw(text);
 
-    // Print cross
+    // Draw cross
     window.draw( cross,    2, sf::Lines);
     window.draw(&cross[2], 2, sf::Lines);
 
