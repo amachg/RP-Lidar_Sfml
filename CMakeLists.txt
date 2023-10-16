@@ -20,7 +20,7 @@ target_compile_features(${PROJECT_NAME} PRIVATE cxx_std_23)
 
 # Link Dependency: RPLidar SDK
 add_library(rplidar STATIC IMPORTED)
-set(RPLIDAR_SDK_PATH "C:/MYDATA/source/repos/rplidar_sdk")
+set(RPLIDAR_SDK_PATH "C:\\Slamtec\\rplidar_sdk")
 set_property(TARGET rplidar PROPERTY IMPORTED_LOCATION ${RPLIDAR_SDK_PATH}/output/win32/Debug/rplidar_driver.lib)
 target_include_directories(rplidar INTERFACE ${RPLIDAR_SDK_PATH}/sdk/include/)
 target_link_libraries(${PROJECT_NAME} PRIVATE rplidar sfml-graphics)
