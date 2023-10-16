@@ -74,6 +74,7 @@ void draw_Scan(sf::RenderTarget& window,
             const int distance_mm = node.dist_mm_q2 / 4;
             const int distance_cm = distance_mm / 10;
 
+            /// update min/max distances
             if (distance_cm < min_dist_cm) {
                 min_dist_cm = distance_cm;
                 min_dist_theta = static_cast<unsigned>(theta_deg);
@@ -82,41 +83,49 @@ void draw_Scan(sf::RenderTarget& window,
                 max_dist_cm = distance_cm;
                 max_dist_theta = static_cast<unsigned>(theta_deg);
             }
-
+            /// Calc cartesian coordinates
             const float theta_rad = theta_deg * 3.14159f / 180;
             const sf::Vector2f endpoint_cm( cos(theta_rad) * distance_cm,
                                             sin(theta_rad) * distance_cm);
+            /// Draw ray lines
             //static const sf::Vertex origin(sf::Vector2f(0, 0), sf::Color::Red);
             //const sf::Vertex ray[] = { origin, endpoint_cm };
             //window.draw(ray, 2, sf::Lines);
 
+            /// Draw perimeter lines
             const sf::Vertex join_prev[] = { prev_endpoint, endpoint_cm };
             window.draw(join_prev, 2, sf::Lines);
             prev_endpoint = endpoint_cm;
         }
     }
-
+    // Print statistics
     lidar_driver->getFrequency(actual_ScanMode, nodes, count, actual_freq);
+    static auto rpm = static_cast<unsigned>(60 * actual_freq);
+    static auto sample_rate = 1000 / actual_ScanMode.us_per_sample;
+    static auto samples_per_round = sample_rate / actual_freq;
     static char text_chars[50];
     sprintf(text_chars, "Mode: %s, Scan-rate:%4.1f rps (%u rpm), Sampling:%1.1f Ksps (%.0f spr)\n", 
-        actual_ScanMode.scan_mode, actual_freq, static_cast<unsigned>(60 * actual_freq), 
-        1000 / actual_ScanMode.us_per_sample, 1000000 / (actual_ScanMode.us_per_sample * actual_freq) );
+        actual_ScanMode.scan_mode, actual_freq, rpm, sample_rate, samples_per_round);
     text.setString(text_chars);
     text.setPosition(-text_pos, -text_pos);
     window.draw(text);
 
-    sprintf(text_chars, "Scan distance (cm): min=%u at heading:%u\tmax=%u at heading:%u\n", 
+    // Print bounds
+    sprintf(text_chars, "Scan bounds (cm): min=%u @ heading:%u\tmax=%u @ heading:%u\n", 
         min_dist_cm, min_dist_theta, max_dist_cm, max_dist_theta);
     text.setString(text_chars);
     text.setPosition(-text_pos, text_pos - 50);
     window.draw(text);
 
+    // Print cross
     window.draw( cross,    2, sf::Lines);
     window.draw(&cross[2], 2, sf::Lines);
 
+    // Draw Lidar device
     window.draw(motor);
     window.draw(lidar);
 
+    // Draw theoretical rangle limits
     window.draw(low_range);
     window.draw(high_range);
 }

@@ -28,8 +28,8 @@ int main() {
     // Setup Lidar driver, serial data channel and check health status.
     sl::ILidarDriver* lidar_driver{};
     if(!setup_Lidar(lidar_driver)
-    || !print_infos(lidar_driver)
-    || !start_Lidar(lidar_driver)
+    //|| !print_infos(lidar_driver)
+    //|| !start_Lidar(lidar_driver)
         ) return false;
 
     static constexpr size_t array_size{ 8192 };
@@ -56,14 +56,14 @@ int main() {
                 }
             }
         }
-        /// Wait and grab a complete 0-360 degree scan data, asyncly received with startScan.
-        auto op_result = lidar_driver->grabScanDataHq(nodes, nodes_count);
-        if (SL_IS_FAIL(op_result)) {
-            fprintf(stderr, "Failed to get scan data with error code: %x\n", op_result);
-            return false;
-        }
-        /// Rank the scan data according to its angle value.
-        lidar_driver->ascendScanData(nodes, nodes_count);
+        ///// Wait and grab a complete 0-360 degree scan data, asyncly received with startScan.
+        //auto op_result = lidar_driver->grabScanDataHq(nodes, nodes_count);
+        //if (SL_IS_FAIL(op_result)) {
+        //    fprintf(stderr, "Failed to get scan data with error code: %x\n", op_result);
+        //    return false;
+        //}
+        ///// Rank the scan data according to its angle value.
+        //lidar_driver->ascendScanData(nodes, nodes_count);
 
         //Redraw on screen
         window.setView(camera_view);
