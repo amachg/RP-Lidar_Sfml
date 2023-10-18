@@ -6,14 +6,14 @@ message (STATUS "Fetching SFML..")
 include(FetchContent)
 FetchContent_Declare( SFML 
 	# URL of the git repository and Git branch name, tag or commit hash. 
-	#GIT_REPOSITORY https://github.com/SFML/SFML.git GIT_TAG 2.6.x
+	#GIT_REPOSITORY https://github.com/SFML/SFML.git GIT_TAG 2.6 # or master
 
 	# List of paths and/or URL(s) of the external project's source.
 	URL "https://github.com/SFML/SFML/archive/2.6.0.zip"
 )
 FetchContent_MakeAvailable(SFML)
 
-# Make MSVC use a statically-linked, multi-threaded runtime library
+# Select a multi-threaded statically-linked MSVC runtime library for MSVCompiler.
 set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
 
 # Add source to this project's executable.
