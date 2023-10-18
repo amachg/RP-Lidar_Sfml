@@ -14,7 +14,7 @@ FetchContent_MakeAvailable(SFML)
 # Make MSVC use a statically-linked, multi-threaded runtime library
 set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
 
-# Add source to this project's executable.
+# Add source to project's executable.
 add_executable(${PROJECT_NAME} ${SOURCES})
 target_compile_features(${PROJECT_NAME} PRIVATE cxx_std_23)
 
