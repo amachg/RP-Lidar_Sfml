@@ -49,10 +49,12 @@ int main() {
                 camera_view.zoom( 1 + event.mouseWheel.delta * 0.1f);
             else if (event.type == sf::Event::KeyPressed) {
                 switch (event.key.code) {
-                case sf::Keyboard::Left: camera_view.move(-10, 0); break;
-                case sf::Keyboard::Right:camera_view.move(10, 0); break;
-                case sf::Keyboard::Up:   camera_view.move(0, -10); break;
-                case sf::Keyboard::Down: camera_view.move(0, 10);
+                //case sf::Keyboard::Left: camera_view.move(-10, 0); break;
+                //case sf::Keyboard::Right:camera_view.move(10, 0); break;
+                //case sf::Keyboard::Up:   camera_view.move(0, -10); break;
+                //case sf::Keyboard::Down: camera_view.move(0, 10);
+                case sf::Keyboard::Up:   lidar_driver->setMotorSpeed(speed + 10); break;
+                case sf::Keyboard::Down: lidar_driver->setMotorSpeed(speed - 10);
                 }
             }
         }

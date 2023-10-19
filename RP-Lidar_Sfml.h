@@ -3,8 +3,8 @@
 */
 
 #pragma once
-#include <sl_lidar.h>        // from installed RPLIDAR sdk
-#include <SFML/Graphics.hpp> // from installed SFML
+#include <sl_lidar.h>        // RPLIDAR sdk dependancy
+#include <SFML/Graphics.hpp> // SFML dependancy
  
 // App Window and View
 static const sf::Vector2u wind_size(985, 985);
@@ -55,6 +55,8 @@ void setup_GUI() {
 
 static sl::LidarScanMode actual_ScanMode;
 static float actual_freq;
+sl::LidarMotorInfo motorInfo;
+sl_u16 speed;
 
 void draw_Scan(sf::RenderTarget& window,
     sl::ILidarDriver*& lidar_driver,auto& nodes, size_t count)
@@ -98,14 +100,18 @@ void draw_Scan(sf::RenderTarget& window,
             prev_endpoint = endpoint_cm;
         }
     }
+
+    lidar_driver->getMotorInfo(motorInfo);
+    speed = motorInfo.desired_speed;
+
     // Print statistics
     lidar_driver->getFrequency(actual_ScanMode, nodes, count, actual_freq);
     static auto rpm = static_cast<unsigned>(60 * actual_freq);
     static auto sample_rate = 1000 / actual_ScanMode.us_per_sample;
     static auto samples_per_round = sample_rate / actual_freq;
     static char text_chars[50];
-    sprintf(text_chars, "Mode: %s, Scan-rate:%4.1f rps (%u rpm), Sampling:%1.1f Ksps (%.0f spr)\n", 
-        actual_ScanMode.scan_mode, actual_freq, rpm, sample_rate, samples_per_round);
+    sprintf(text_chars, "Mode: %s, Scan-rate:%4.1f rps (%u rpm), Sampling:%1.1f Ksps (%.0f spr), speed %5.1f\n", 
+        actual_ScanMode.scan_mode, actual_freq, rpm, sample_rate, samples_per_round, speed);
     text.setString(text_chars);
     text.setPosition(-text_pos, -text_pos);
     window.draw(text);
