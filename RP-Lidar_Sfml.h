@@ -25,12 +25,12 @@ static sf::Font font;
 static sf::Text text;
 
 void setup_GUI() {
-    window.setPosition({ 0, 0 }); // Placement of app window on screen
+    window.setPosition({ 150, 150 }); // Placement of app window on screen
     window.setFramerateLimit(5);
 
     camera_view.setCenter(0, 0);
     //camera_view.setRotation(90);// Normally lidar motor is on the left of the Window
-    camera_view.zoom(1.1); // >1 means zoom-out
+    camera_view.zoom(1); // >1 means zoom-out
     window.setView(camera_view);
 
     lidar.setFillColor(sf::Color::Black);
@@ -54,17 +54,15 @@ void setup_GUI() {
 }
 
 static sl::LidarScanMode actual_ScanMode;
-static float actual_freq;
-sl::LidarMotorInfo motorInfo;
-sl_u16 speed;
+static float freq;
+static sf::Vector2f prev_endpoint;
 
 void draw_Scan(sf::RenderTarget& window,
-    sl::ILidarDriver*& lidar_driver,auto& nodes, size_t count)
+    sl::ILidarDriver*& lidar_driver, auto& nodes, size_t count)
 {
     auto min_dist_cm{ static_cast<unsigned>(high_range.getRadius()) };
     auto max_dist_cm{ static_cast<unsigned>(low_range.getRadius()) };
     unsigned min_dist_theta{}, max_dist_theta{};
-    sf::Vector2f prev_endpoint{};
 
     for (size_t i = 0; i < count; ++i) {
         const auto& node = nodes[i];
@@ -89,35 +87,33 @@ void draw_Scan(sf::RenderTarget& window,
             const float theta_rad = theta_deg * 3.14159f / 180;
             const sf::Vector2f endpoint_cm( cos(theta_rad) * distance_cm,
                                             sin(theta_rad) * distance_cm);
-            /// Draw ray lines
+            //// Draw ray lines
             //static const sf::Vertex origin(sf::Vector2f(0, 0), sf::Color::Red);
             //const sf::Vertex ray[] = { origin, endpoint_cm };
             //window.draw(ray, 2, sf::Lines);
 
             /// Draw perimeter lines
-            const sf::Vertex join_prev[] = { prev_endpoint, endpoint_cm };
-            window.draw(join_prev, 2, sf::Lines);
+            const sf::Vertex endpoints[] = { prev_endpoint, endpoint_cm };
+            window.draw(endpoints, 2, sf::Lines);
             prev_endpoint = endpoint_cm;
         }
     }
 
-    lidar_driver->getMotorInfo(motorInfo);
-    speed = motorInfo.desired_speed;
-
-    // Print statistics
-    lidar_driver->getFrequency(actual_ScanMode, nodes, count, actual_freq);
-    static auto rpm = static_cast<unsigned>(60 * actual_freq);
+    // Print statistics. Must have made full scan to give true freq.
+    lidar_driver->getFrequency(actual_ScanMode, nodes, count, freq);
+    static auto rpm = static_cast<unsigned>(60 * freq);
     static auto sample_rate = 1000 / actual_ScanMode.us_per_sample;
-    static auto samples_per_round = sample_rate / actual_freq;
+    static auto samples_per_round = sample_rate / freq;
     static char text_chars[50];
-    sprintf(text_chars, "Mode: %s, Scan-rate:%4.1f rps (%u rpm), Sampling:%1.1f Ksps (%.0f spr), speed %5.1f\n", 
-        actual_ScanMode.scan_mode, actual_freq, rpm, sample_rate, samples_per_round, speed);
+    sprintf(text_chars, "Mode: %s, Scan-rate: %2.1f Hz (%u rpm), "
+        "Sample-rate: %2.1f Ksps (%3.2f Kspr)\n", 
+        actual_ScanMode.scan_mode, freq, rpm, sample_rate, samples_per_round);
     text.setString(text_chars);
     text.setPosition(-text_pos, -text_pos);
     window.draw(text);
 
     // Print bounds
-    sprintf(text_chars, "Scan bounds (cm): min=%u @ heading:%u\tmax=%u @ heading:%u\n", 
+    sprintf(text_chars, "Scan bounds (cm): min=%u @ heading:%u, max=%u @ heading:%u\n", 
         min_dist_cm, min_dist_theta, max_dist_cm, max_dist_theta);
     text.setString(text_chars);
     text.setPosition(-text_pos, text_pos - 50);
@@ -144,7 +140,7 @@ bool setup_Lidar(sl::ILidarDriver* & lidar_driver) {
         return false;
     }
     ///  Create a LIDAR communication channel in Linux or Win32
-    auto com_device = "com4";    // "/dev/ttyUSB0" for Linux
+    auto com_device = "com5";    // "/dev/ttyUSB0" for Linux
     auto com_channel = sl::createSerialPortChannel(com_device, 115200);
     /// Make connection to the lidar via the serial channel.
     auto op_result = lidar_driver->connect(*com_channel);
@@ -168,17 +164,17 @@ bool print_infos(sl::ILidarDriver*& lidar_driver) {
         return false;
     }
 
-    // print out the device serial number.
-    printf("SLAMTEC LIDAR S/N: ");
-    for (int pos = 0; pos < 16; ++pos) {
-        printf("%02X", deviceInfo.serialnum[pos]);
-    }
-    /// print out the device firmware and hardware version number.
-    printf("\nModel: %d, Firmware Version: %d.%d, Hardware Version: %d\n",
-        deviceInfo.model,
-        deviceInfo.firmware_version >> 8,
-        deviceInfo.firmware_version & 0xffu,
-        deviceInfo.hardware_version);
+    //// print out the device serial number.
+    //printf("SLAMTEC LIDAR S/N: ");
+    //for (int pos = 0; pos < 16; ++pos) {
+    //    printf("%02X", deviceInfo.serialnum[pos]);
+    //}
+    ///// print out the device firmware and hardware version number.
+    //printf("\nModel: %d, Firmware Version: %d.%d, Hardware Version: %d\n",
+    //    deviceInfo.model,
+    //    deviceInfo.firmware_version >> 8,
+    //    deviceInfo.firmware_version & 0xffu,
+    //    deviceInfo.hardware_version);
 
     /// Retrieve the health status
     sl_lidar_response_device_health_t healthinfo;
@@ -189,7 +185,7 @@ bool print_infos(sl::ILidarDriver*& lidar_driver) {
     }
     switch (healthinfo.status) {
         case SL_LIDAR_STATUS_OK:
-            printf("Lidar health status is OK.");
+            printf("Lidar health status is OK.\n");
             break;
         case SL_LIDAR_STATUS_WARNING:
             printf("Lidar Warning (errorcode: %d)\n", healthinfo.error_code);
@@ -210,12 +206,13 @@ bool start_Lidar(sl::ILidarDriver*& lidar_driver) {
     /// Select a scan mode to fetch scan data by the background thread.
     /// Use typical scan mode (For last model A1 this is "Sensitivity"),
     /// or select mode (0->Standard, 1->Express, 2->Boost, 3->Sensitivity 4->Stability).
+ 
     std::vector<sl::LidarScanMode> scanModes;
     lidar_driver->getAllSupportedScanModes(scanModes);
 
     auto op_result = lidar_driver->
         //startScan(false /*not force scan*/, true /*Use typical scan mode*/,
-        startScanExpress(false, scanModes[2].id, // Select scan Mode
+        startScanExpress(false, scanModes[3].id, // Select scan Mode
         0, &actual_ScanMode);
     if (SL_IS_FAIL(op_result)) {
         fprintf(stderr, "Error, cannot start the scan operation.\n");
