@@ -29,7 +29,7 @@ int main() {
     sl::ILidarDriver* lidar_driver{};
     if(!setup_Lidar(lidar_driver)
     //|| !print_infos(lidar_driver)
-    //|| !start_Lidar(lidar_driver)
+    || !start_Lidar(lidar_driver)
         ) return false;
 
     static constexpr size_t array_size{ 8192 };
@@ -45,8 +45,10 @@ int main() {
                 sf::Vector2f new_size(event.size.width, event.size.height);
                 camera_view.setSize(new_size);
             }
-            else if (event.type == sf::Event::MouseWheelMoved)
-                camera_view.zoom( 1 - event.mouseWheel.delta * 0.1f);
+            else if (event.type == sf::Event::MouseWheelMoved) {
+                camera_view.zoom(1 - event.mouseWheel.delta * 0.1f);
+                text_pos = camera_view.getSize().x / 2;
+            }
             else if (event.type == sf::Event::KeyPressed) {
                 switch (event.key.code) {
                 case sf::Keyboard::Left: camera_view.move(-10, 0); break;
@@ -56,21 +58,19 @@ int main() {
                 }
             }
         }
-        ///// Wait and grab a complete 0-360 degree scan data, asyncly received with startScan.
-        //auto op_result = lidar_driver->grabScanDataHq(nodes, nodes_count);
-        //if (SL_IS_FAIL(op_result)) {
-        //    fprintf(stderr, "Failed to get scan data with error code: %x\n", op_result);
-        //    return false;
-        //}
-        ///// Rank the scan data according to its angle value.
-        //lidar_driver->ascendScanData(nodes, nodes_count);
+        /// Wait and grab a complete 0-360 degree scan data, asyncly received with startScan.
+        auto op_result = lidar_driver->grabScanDataHq(nodes, nodes_count);
+        if (SL_IS_FAIL(op_result)) {
+            fprintf(stderr, "Failed to get scan data with error code: %x\n", op_result);
+            return false;
+        }
+        /// Rank the scan data according to its angle value.
+        lidar_driver->ascendScanData(nodes, nodes_count);
 
-        //Redraw on screen
+        //Redraw screen
         window.setView(camera_view);
         window.clear(sf::Color::Blue);
-
         draw_Scan(window, lidar_driver, nodes, nodes_count);
-
         window.display(); // Show everything
     }
     /// Stop scan and exit

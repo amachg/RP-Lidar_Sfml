@@ -20,9 +20,9 @@ static const sf::Vertex cross[] = {
     sf::Vertex({ 0, cross_size}, sf::Color::Red)
 };
 // Text
-static const float text_pos = wind_size.x / 2;
 static sf::Font font;
 static sf::Text text;
+static float text_pos = camera_view.getSize().x / 2;
 
 void setup_GUI() {
     window.setPosition({ 0, 0 }); // Placement of app window on screen
@@ -55,59 +55,58 @@ void setup_GUI() {
 
 static sl::LidarScanMode actual_ScanMode;
 static float freq;
-static sf::Vector2f prev_endpoint;
+static sf::Vector2f prev_reflect;
 
 void draw_Scan(sf::RenderTarget& window,
     sl::ILidarDriver*& lidar_driver, auto& nodes, size_t count)
 {
+    //// Draw cross
+    //window.draw( cross,    2, sf::Lines);
+    //window.draw(&cross[2], 2, sf::Lines);
+    // Draw Lidar device
+    window.draw(motor);
+    window.draw(lidar);
+    // Draw theoretical rangle limits
+    window.draw(low_range);
+    window.draw(high_range);
+
     auto min_dist_cm{ static_cast<unsigned>(high_range.getRadius()) };
     auto max_dist_cm{ static_cast<unsigned>(low_range.getRadius()) };
     unsigned min_dist_theta{}, max_dist_theta{};
+    sf::Vector2f min_reflect_pt, max_reflect_pt;
 
     for (size_t i = 0; i < count; ++i) {
         const auto& node = nodes[i];
-        const auto start_node = node.flag & SL_LIDAR_RESP_HQ_FLAG_SYNCBIT ?
-            "Start " : "      ";
-        const float theta_deg = node.angle_z_q14 * 90.f / 16384;
-        const int distance_mm = node.dist_mm_q2 / 4;
-        const int distance_cm = distance_mm / 10;
-
-        /// update min/max distances
-        if (distance_cm < min_dist_cm) {
-            min_dist_cm = distance_cm;
-            min_dist_theta = static_cast<unsigned>(theta_deg);
-        }
-        if (distance_cm > max_dist_cm) {
-            max_dist_cm = distance_cm;
-            max_dist_theta = static_cast<unsigned>(theta_deg);
-        }
-        /// Calc cartesian coordinates
-        const float theta_rad = theta_deg * 3.14159f / 180;
-        const sf::Vector2f reflect_pt( cos(theta_rad) * distance_cm,
-                                        sin(theta_rad) * distance_cm );
-
-        // Draw ray lines
         const int quality = node.quality >> SL_LIDAR_RESP_MEASUREMENT_QUALITY_SHIFT;
-        if (quality == 0) {
-            const sf::Vertex origin({ 0.f, 0.f }, sf::Color::Red);
-            const sf::Vertex end_pt(reflect_pt, sf::Color::Red);
-            const sf::Vertex ray[] = { origin, end_pt };
-            window.draw(ray, 2, sf::Lines);
+        if (quality > 0) {
+            const auto start_node = node.flag & SL_LIDAR_RESP_HQ_FLAG_SYNCBIT ?
+                "Start " : "      ";
+            const float theta_deg = node.angle_z_q14 * 90.f / 16384;
+            const int distance_mm = node.dist_mm_q2 / 4;
+            const int distance_cm = distance_mm / 10;
+            /// Calc cartesian coordinates
+            const float theta_rad = theta_deg * 3.14159f / 180;
+            const sf::Vector2f reflect_pt( cos(theta_rad) * distance_cm,
+                                           sin(theta_rad) * distance_cm );
+            /// update min/max distances
+            if (distance_cm < min_dist_cm) {
+                min_dist_cm = distance_cm;
+                min_dist_theta = static_cast<unsigned>(theta_deg);
+                min_reflect_pt = reflect_pt;
+            }
+            if (distance_cm > max_dist_cm) {
+                max_dist_cm = distance_cm;
+                max_dist_theta = static_cast<unsigned>(theta_deg);
+                max_reflect_pt = reflect_pt;
+            }
+            /// Draw Ray lines or Perimeter lines
+            //const sf::Vertex line[] = { sf::Vector2f{0, 0}, reflect_pt };
+            const sf::Vertex line[] = { prev_reflect, reflect_pt };
+            window.draw(line, 2, sf::Lines);
+            prev_reflect = reflect_pt;
         }
-        else {
-            const sf::Vertex origin({ 0.f, 0.f }, sf::Color::Green);
-            const sf::Vertex end_pt(reflect_pt, sf::Color::Green);
-            const sf::Vertex ray[] = { origin, end_pt };
-            window.draw(ray, 2, sf::Lines);
-        }
-
-        ///// Draw perimeter lines
-        //const sf::Vertex endpoints[] = { prev_endpoint, endpoint_cm };
-        //window.draw(endpoints, 2, sf::Lines);
-        //prev_endpoint = endpoint_cm;
     }
-
-    // Print statistics. Must have made full scan to give true freq.
+    /// Print statistics. Must have made full scan to give true freq.
     lidar_driver->getFrequency(actual_ScanMode, nodes, count, freq);
     static auto rpm = static_cast<unsigned>(60 * freq);
     static auto sample_rate = 1000 / actual_ScanMode.us_per_sample;
@@ -119,25 +118,24 @@ void draw_Scan(sf::RenderTarget& window,
     text.setString(text_chars);
     text.setPosition(-text_pos, -text_pos);
     window.draw(text);
-
     // Print bounds
-    sprintf(text_chars, "Scan bounds (cm): min=%u @ %u deg, max=%u @ %u deg\n", 
+    sprintf(text_chars, "Scan bounds (cm): min=%u @ %u deg, max=%u @ %u deg\n",
         min_dist_cm, min_dist_theta, max_dist_cm, max_dist_theta);
     text.setString(text_chars);
     text.setPosition(-text_pos, text_pos - 50);
     window.draw(text);
 
-    // Draw cross
-    window.draw( cross,    2, sf::Lines);
-    window.draw(&cross[2], 2, sf::Lines);
+    const sf::Vertex min_arrow[] = {
+        sf::Vertex({0, 0}, sf::Color::Red),
+        sf::Vertex(min_reflect_pt, sf::Color::Red)
+    };
+    window.draw(min_arrow, 2, sf::Lines);
 
-    // Draw Lidar device
-    window.draw(motor);
-    window.draw(lidar);
-
-    // Draw theoretical rangle limits
-    window.draw(low_range);
-    window.draw(high_range);
+    const sf::Vertex max_arrow[] = {
+        sf::Vertex({0, 0}, sf::Color::Green),
+        sf::Vertex(max_reflect_pt, sf::Color::Green)
+    };
+    window.draw(max_arrow, 2, sf::Lines);
 }
 
 bool setup_Lidar(sl::ILidarDriver* & lidar_driver) {
