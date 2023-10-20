@@ -25,7 +25,7 @@ static sf::Font font;
 static sf::Text text;
 
 void setup_GUI() {
-    window.setPosition({ 150, 150 }); // Placement of app window on screen
+    window.setPosition({ 0, 0 }); // Placement of app window on screen
     window.setFramerateLimit(5);
 
     camera_view.setCenter(0, 0);
@@ -41,11 +41,11 @@ void setup_GUI() {
 
     low_range.setFillColor(sf::Color::Transparent);
     low_range.setOutlineThickness(1);
-    low_range.setOutlineColor(sf::Color::Red);
+    low_range.setOutlineColor(sf::Color::Yellow);
     low_range.setOrigin(low_range.getRadius(), low_range.getRadius());
     high_range.setFillColor(sf::Color::Transparent);
     high_range.setOutlineThickness(1);
-    high_range.setOutlineColor(sf::Color::Red);
+    high_range.setOutlineColor(sf::Color::Yellow);
     high_range.setOrigin(high_range.getRadius(), high_range.getRadius());
 
     if (!font.loadFromFile(R"(../../../arial.ttf)"))
@@ -66,37 +66,45 @@ void draw_Scan(sf::RenderTarget& window,
 
     for (size_t i = 0; i < count; ++i) {
         const auto& node = nodes[i];
-        const int quality = node.quality >> SL_LIDAR_RESP_MEASUREMENT_QUALITY_SHIFT;
-        if (quality > 0) {
-            const auto start_node = node.flag & SL_LIDAR_RESP_HQ_FLAG_SYNCBIT ?
-                "Start " : "      ";
-            const float theta_deg = node.angle_z_q14 * 90.f / 16384;
-            const int distance_mm = node.dist_mm_q2 / 4;
-            const int distance_cm = distance_mm / 10;
+        const auto start_node = node.flag & SL_LIDAR_RESP_HQ_FLAG_SYNCBIT ?
+            "Start " : "      ";
+        const float theta_deg = node.angle_z_q14 * 90.f / 16384;
+        const int distance_mm = node.dist_mm_q2 / 4;
+        const int distance_cm = distance_mm / 10;
 
-            /// update min/max distances
-            if (distance_cm < min_dist_cm) {
-                min_dist_cm = distance_cm;
-                min_dist_theta = static_cast<unsigned>(theta_deg);
-            }
-            if (distance_cm > max_dist_cm) {
-                max_dist_cm = distance_cm;
-                max_dist_theta = static_cast<unsigned>(theta_deg);
-            }
-            /// Calc cartesian coordinates
-            const float theta_rad = theta_deg * 3.14159f / 180;
-            const sf::Vector2f endpoint_cm( cos(theta_rad) * distance_cm,
-                                            sin(theta_rad) * distance_cm);
-            //// Draw ray lines
-            //static const sf::Vertex origin(sf::Vector2f(0, 0), sf::Color::Red);
-            //const sf::Vertex ray[] = { origin, endpoint_cm };
-            //window.draw(ray, 2, sf::Lines);
-
-            /// Draw perimeter lines
-            const sf::Vertex endpoints[] = { prev_endpoint, endpoint_cm };
-            window.draw(endpoints, 2, sf::Lines);
-            prev_endpoint = endpoint_cm;
+        /// update min/max distances
+        if (distance_cm < min_dist_cm) {
+            min_dist_cm = distance_cm;
+            min_dist_theta = static_cast<unsigned>(theta_deg);
         }
+        if (distance_cm > max_dist_cm) {
+            max_dist_cm = distance_cm;
+            max_dist_theta = static_cast<unsigned>(theta_deg);
+        }
+        /// Calc cartesian coordinates
+        const float theta_rad = theta_deg * 3.14159f / 180;
+        const sf::Vector2f reflect_pt( cos(theta_rad) * distance_cm,
+                                        sin(theta_rad) * distance_cm );
+
+        // Draw ray lines
+        const int quality = node.quality >> SL_LIDAR_RESP_MEASUREMENT_QUALITY_SHIFT;
+        if (quality == 0) {
+            const sf::Vertex origin({ 0.f, 0.f }, sf::Color::Red);
+            const sf::Vertex end_pt(reflect_pt, sf::Color::Red);
+            const sf::Vertex ray[] = { origin, end_pt };
+            window.draw(ray, 2, sf::Lines);
+        }
+        else {
+            const sf::Vertex origin({ 0.f, 0.f }, sf::Color::Green);
+            const sf::Vertex end_pt(reflect_pt, sf::Color::Green);
+            const sf::Vertex ray[] = { origin, end_pt };
+            window.draw(ray, 2, sf::Lines);
+        }
+
+        ///// Draw perimeter lines
+        //const sf::Vertex endpoints[] = { prev_endpoint, endpoint_cm };
+        //window.draw(endpoints, 2, sf::Lines);
+        //prev_endpoint = endpoint_cm;
     }
 
     // Print statistics. Must have made full scan to give true freq.
@@ -105,15 +113,15 @@ void draw_Scan(sf::RenderTarget& window,
     static auto sample_rate = 1000 / actual_ScanMode.us_per_sample;
     static auto samples_per_round = sample_rate / freq;
     static char text_chars[50];
-    sprintf(text_chars, "Mode: %s, Scan-rate: %2.1f Hz (%u rpm), "
-        "Sample-rate: %2.1f Ksps (%3.2f Kspr)\n", 
+    sprintf(text_chars, "Mode: %s, Scan: %2.1f Hz (%u rpm), "
+        "Sample: %2.1f Ksps (%3.2f Kspr)\n", 
         actual_ScanMode.scan_mode, freq, rpm, sample_rate, samples_per_round);
     text.setString(text_chars);
     text.setPosition(-text_pos, -text_pos);
     window.draw(text);
 
     // Print bounds
-    sprintf(text_chars, "Scan bounds (cm): min=%u @ heading:%u, max=%u @ heading:%u\n", 
+    sprintf(text_chars, "Scan bounds (cm): min=%u @ %u deg, max=%u @ %u deg\n", 
         min_dist_cm, min_dist_theta, max_dist_cm, max_dist_theta);
     text.setString(text_chars);
     text.setPosition(-text_pos, text_pos - 50);
