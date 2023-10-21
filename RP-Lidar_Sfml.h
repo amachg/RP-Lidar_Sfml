@@ -22,7 +22,7 @@ static const sf::Vertex cross[] = {
 // Text
 static sf::Font font;
 static sf::Text text;
-static float text_pos = camera_view.getSize().x / 2;
+static auto text_pos = camera_view.getSize().x / 2;
 
 void setup_GUI() {
     window.setPosition({ 0, 0 }); // Placement of app window on screen
@@ -56,47 +56,63 @@ void setup_GUI() {
 static sl::LidarScanMode actual_ScanMode;
 static float freq;
 static sf::Vector2f prev_reflect;
+static constexpr float pi{ 3.14159265359 };
 
-void draw_Scan(sf::RenderTarget& window,
-    sl::ILidarDriver*& lidar_driver, auto& nodes, size_t count)
-{
+void draw_arrow(const float length, const float angle, sf::Vector2f end_pt) {
+    sf::RectangleShape rectangle{ {length-2, 1} };
+    rectangle.setFillColor(sf::Color::Red);
+    rectangle.setRotation(angle);
+    rectangle.setOrigin(0, 0.5);
+    window.draw(rectangle);     
+
+    sf::CircleShape triangle(/*radius*/ 4, /*pointCount*/ 3);
+    triangle.setFillColor(sf::Color::Red);
+    triangle.setPosition(end_pt);
+    triangle.setRotation(angle -30);
+    const auto r = triangle.getRadius();
+    triangle.setOrigin( 2*r, r+2);
+    window.draw(triangle);
+}
+
+void draw_Scan(sf::RenderTarget& window, sl::ILidarDriver*& lidar_driver,
+    auto& nodes, size_t count) {
     //// Draw cross
-    //window.draw( cross,    2, sf::Lines);
-    //window.draw(&cross[2], 2, sf::Lines);
+    window.draw( cross,    2, sf::Lines);
+    window.draw(&cross[2], 2, sf::Lines);
     // Draw Lidar device
     window.draw(motor);
     window.draw(lidar);
-    // Draw theoretical rangle limits
+    //// Draw theoretical rangle limits
     window.draw(low_range);
     window.draw(high_range);
 
     auto min_dist_cm{ static_cast<unsigned>(high_range.getRadius()) };
     auto max_dist_cm{ static_cast<unsigned>(low_range.getRadius()) };
-    unsigned min_dist_theta{}, max_dist_theta{};
+    float min_dist_theta{}, max_dist_theta{};
     sf::Vector2f min_reflect_pt, max_reflect_pt;
 
     for (size_t i = 0; i < count; ++i) {
         const auto& node = nodes[i];
-        const int quality = node.quality >> SL_LIDAR_RESP_MEASUREMENT_QUALITY_SHIFT;
-        if (quality > 0) {
-            const auto start_node = node.flag & SL_LIDAR_RESP_HQ_FLAG_SYNCBIT ?
-                "Start " : "      ";
+        const int brightness = node.quality >> SL_LIDAR_RESP_MEASUREMENT_QUALITY_SHIFT;
+        if (brightness > 0) {
+            const auto start_node = node.flag & SL_LIDAR_RESP_HQ_FLAG_SYNCBIT ? "Start " : "      ";
             const float theta_deg = node.angle_z_q14 * 90.f / 16384;
-            const int distance_mm = node.dist_mm_q2 / 4;
-            const int distance_cm = distance_mm / 10;
+            const auto distance_mm = node.dist_mm_q2 / 4;
+            const auto distance_cm = distance_mm / 10;
+
             /// Calc cartesian coordinates
-            const float theta_rad = theta_deg * 3.14159f / 180;
+            const float theta_rad = theta_deg * pi / 180;
             const sf::Vector2f reflect_pt( cos(theta_rad) * distance_cm,
                                            sin(theta_rad) * distance_cm );
             /// update min/max distances
             if (distance_cm < min_dist_cm) {
                 min_dist_cm = distance_cm;
-                min_dist_theta = static_cast<unsigned>(theta_deg);
+                min_dist_theta = theta_deg;
                 min_reflect_pt = reflect_pt;
             }
             if (distance_cm > max_dist_cm) {
                 max_dist_cm = distance_cm;
-                max_dist_theta = static_cast<unsigned>(theta_deg);
+                max_dist_theta = theta_deg;
                 max_reflect_pt = reflect_pt;
             }
             /// Draw Ray lines or Perimeter lines
@@ -119,23 +135,15 @@ void draw_Scan(sf::RenderTarget& window,
     text.setPosition(-text_pos, -text_pos);
     window.draw(text);
     // Print bounds
-    sprintf(text_chars, "Scan bounds (cm): min=%u @ %u deg, max=%u @ %u deg\n",
+    sprintf(text_chars, "Scan bounds (cm): min=%u @ %f deg, max=%u @ %f deg\n",
         min_dist_cm, min_dist_theta, max_dist_cm, max_dist_theta);
     text.setString(text_chars);
     text.setPosition(-text_pos, text_pos - 50);
     window.draw(text);
 
-    const sf::Vertex min_arrow[] = {
-        sf::Vertex({0, 0}, sf::Color::Red),
-        sf::Vertex(min_reflect_pt, sf::Color::Red)
-    };
-    window.draw(min_arrow, 2, sf::Lines);
-
-    const sf::Vertex max_arrow[] = {
-        sf::Vertex({0, 0}, sf::Color::Green),
-        sf::Vertex(max_reflect_pt, sf::Color::Green)
-    };
-    window.draw(max_arrow, 2, sf::Lines);
+    //// Draw min / max direction arrows
+    draw_arrow(min_dist_cm, min_dist_theta, min_reflect_pt);
+    draw_arrow(max_dist_cm, max_dist_theta, max_reflect_pt);
 }
 
 bool setup_Lidar(sl::ILidarDriver* & lidar_driver) {
@@ -146,7 +154,7 @@ bool setup_Lidar(sl::ILidarDriver* & lidar_driver) {
         return false;
     }
     ///  Create a LIDAR communication channel in Linux or Win32
-    auto com_device = "com5";    // "/dev/ttyUSB0" for Linux
+    auto com_device = "com4";    // comX for Windows, or "/dev/ttyUSB0" for Linux
     auto com_channel = sl::createSerialPortChannel(com_device, 115200);
     /// Make connection to the lidar via the serial channel.
     auto op_result = lidar_driver->connect(*com_channel);
@@ -170,17 +178,17 @@ bool print_infos(sl::ILidarDriver*& lidar_driver) {
         return false;
     }
 
-    //// print out the device serial number.
-    //printf("SLAMTEC LIDAR S/N: ");
-    //for (int pos = 0; pos < 16; ++pos) {
-    //    printf("%02X", deviceInfo.serialnum[pos]);
-    //}
-    ///// print out the device firmware and hardware version number.
-    //printf("\nModel: %d, Firmware Version: %d.%d, Hardware Version: %d\n",
-    //    deviceInfo.model,
-    //    deviceInfo.firmware_version >> 8,
-    //    deviceInfo.firmware_version & 0xffu,
-    //    deviceInfo.hardware_version);
+    // print out the device serial number.
+    printf("SLAMTEC LIDAR S/N: ");
+    for (int pos = 0; pos < 16; ++pos) {
+        printf("%02X", deviceInfo.serialnum[pos]);
+    }
+    /// print out the device firmware and hardware version number.
+    printf("\nModel: %d, Firmware Version: %d.%d, Hardware Version: %d\n",
+        deviceInfo.model,
+        deviceInfo.firmware_version >> 8,
+        deviceInfo.firmware_version & 0xffu,
+        deviceInfo.hardware_version);
 
     /// Retrieve the health status
     sl_lidar_response_device_health_t healthinfo;

@@ -32,9 +32,9 @@ int main() {
     || !start_Lidar(lidar_driver)
         ) return false;
 
-    static constexpr size_t array_size{ 8192 };
-    static sl_lidar_response_measurement_node_hq_t nodes[array_size];
-    static size_t nodes_count{ array_size };
+    constexpr size_t array_size{ 8192 };
+    sl_lidar_response_measurement_node_hq_t nodes[array_size];
+    size_t nodes_count{ array_size };
 
     sf::Event event;
     while (window.isOpen()) {
