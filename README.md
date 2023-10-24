@@ -8,9 +8,9 @@ User can move origin with arrow keys and zoom with mouse wheel.
 Author: Tassos, Created on October 2023
 
 Requires: 
-     *Slamtec RPLIDAR SDK:  https://github.com/Slamtec/rplidar_sdk
-     *CMake build system (tested on Visual-Studio-2023, Windows 11)
-     *SFML v2.6 graphic framework (auto installed by cmake) 
+* Slamtec RPLIDAR SDK:  https://github.com/Slamtec/rplidar_sdk
+* CMake build system (tested on Visual-Studio-2023, Windows 11)
+* SFML v2.6 graphic framework (auto installed by cmake) 
 
 RPLIDAR A1M8 performs a 360° scan, in a 0.15-12m disk,
 Sample Rate (KSa/s) : 2, 4, 8 (=default in Firmware ver: 1.29)
