@@ -5,8 +5,7 @@ This code reads point clouds data from a RPLIDAR Device
 and displays the output on an SFML display window in realtime.
 User can move origin with arrow keys and zoom with mouse wheel.
 
-Author: Tassos - https://github.com/amachg/RP-Lidar_Sfml
-Created on October 2023
+Author: Tassos, Created on October 2023
 
 Requires: 
      Slamtec RPLIDAR SDK:  https://github.com/Slamtec/rplidar_sdk
