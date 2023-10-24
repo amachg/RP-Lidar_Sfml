@@ -11,17 +11,19 @@ Author: Tassos, Created in October 2023
 
 Requires: 
 * Windows	or Linux
-* Slamtec RPLIDAR SDK https://github.com/Slamtec/rplidar_sdk
 * CMake build system generator https://github.com/Kitware/CMake
+* Slamtec RPLIDAR SDK https://github.com/Slamtec/rplidar_sdk
 * SFML graphic framework (auto installed by cmake) https://github.com/SFML/SFML
 
-Tested with: 
-* RPLIDAR model: A1M8 (Firmware ver: 1.29)
-* Slamtec RPLIDAR SDK v2, built on Windows 11
-* Visual-Studio-2023 and CMake v3.26
+Tested on:
+* Windows 11
+* Visual-Studio-2023
+* CMake v3.26
+* Slamtec RPLIDAR SDK v2
 * SFML v2.6
+* RPLIDAR model: A1M8 (Firmware ver: 1.29)
 
-RPLIDAR A1M8 performs a 360° scan, from 15 cm to 12 m,
+RPLIDAR A1M8 performs a 360° scan, from 15 cm to 12 m.
 
 Sample Rate: 2, 4, 8 KiloSamples per second, (default in Firmware v1.29 is 8)
 
