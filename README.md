@@ -1,7 +1,7 @@
-# Slamtec RPLIDAR scan graphics viewer, using SFML, on Windows	or	Linux
+# Slamtec RPLIDAR scan viewer, using SFML, on Windows	or Linux
 
-This code creates a LIDAR 2D scan data display, that reads point-cloud data from an RPLIDAR Device and displays the output, on an SFML display window, in realtime.
-Also displayed are closest/farthest distance arrows, low/hight distance limits, the axes and the LIDAR device.
+This code reads a 2D point-cloud scan-data from an RPLIDAR Device and displays the output on an SFML display window, in realtime.
+Also displayed are the LIDAR device, the device settings, closest/farthest distance arrows, low/hight distance limits, and the cartesian axes.
 
 The user can move the axes origin with the arrow keys and zoom with the mouse wheel.
 
@@ -10,10 +10,10 @@ Developed in C++. I have avoided using STL (except once) in order to make it eas
 Author: Tassos, Created in October 2023
 
 Requires: 
-* Windows	or	Linux
-* Slamtec RPLIDAR SDK: https://github.com/Slamtec/rplidar_sdk
-* CMake build system 
-* SFML graphic framework (auto installed by cmake)
+* Windows	or Linux
+* Slamtec RPLIDAR SDK https://github.com/Slamtec/rplidar_sdk
+* CMake build system generator https://github.com/Kitware/CMake
+* SFML graphic framework (auto installed by cmake) https://github.com/SFML/SFML
 
 Tested with: 
 * RPLIDAR model: A1M8 (Firmware ver: 1.29)
@@ -23,6 +23,6 @@ Tested with:
 
 RPLIDAR A1M8 performs a 360° scan, from 15 cm to 12 m,
 
-Sample Rate (in KiloSamples per second): 2, 4, 8 (default in Firmware ver: 1.29)
+Sample Rate: 2, 4, 8 KiloSamples per second, (default in Firmware v1.29 is 8)
 
-Scan Rate 7.5Hz (450 RPM or 1053 samples per round), can possibly be adjusted 2-10 Hz, by motor PWM signal
+Scan Rate 7.5Hz (=450 RPM)(=1053 samples per round)
