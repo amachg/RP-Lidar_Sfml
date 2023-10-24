@@ -16,12 +16,12 @@ Requires:
 * SFML graphic framework (auto installed by cmake) https://github.com/SFML/SFML
 
 Tested on:
-* Windows 11
+* Windows 11 (64bit)
 * Visual-Studio-2023
 * CMake v3.26
-* Slamtec RPLIDAR SDK v2
+* Slamtec RPLIDAR SDK v2 (targets WIN32)
 * SFML v2.6
-* RPLIDAR model: A1M8 (Firmware ver: 1.29)
+* RPLIDAR model A1M8 (Firmware ver: 1.29) via accompanied usb adapter
 
 RPLIDAR A1M8 performs a 360° scan, from 15 cm to 12 m.
 
