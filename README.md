@@ -11,13 +11,13 @@ Author: Tassos, Created in October 2023
 
 Requires: 
 * Windows	or Linux
-* CMake build system generator https://github.com/Kitware/CMake
+* CMake build scripts generator https://github.com/Kitware/CMake
 * Slamtec RPLIDAR SDK https://github.com/Slamtec/rplidar_sdk
 * SFML graphic framework (auto installed by cmake) https://github.com/SFML/SFML
 
 Tested on:
 * Windows 11 (64bit)
-* Visual-Studio-2023
+* Visual Studio 17.7.5
 * CMake v3.26
 * Slamtec RPLIDAR SDK v2 (targets WIN32)
 * SFML v2.6
