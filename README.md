@@ -17,7 +17,7 @@ Requires:
 
 Tested on:
 * Windows 11 (64bit)
-* Visual Studio 17.7.5
+* Visual Studio 2022 v17.7
 * CMake v3.26
 * Slamtec RPLIDAR SDK v2 (targets WIN32)
 * SFML v2.6
