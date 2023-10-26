@@ -4,23 +4,23 @@ project (RPLidar_SFML)
 
 message (STATUS "Fetching SFML..")
 include(FetchContent)
-FetchContent_Declare( SFML 
-	# URL of the git repository and Git branch name, tag or commit hash. 
-	#GIT_REPOSITORY https://github.com/SFML/SFML.git GIT_TAG 2.6 # or master
-
-	# List of paths and/or URL(s) of the external project's source.
-	URL "https://github.com/SFML/SFML/archive/2.6.0.zip"
+FetchContent_Declare( SFML  
+	GIT_REPOSITORY https://github.com/SFML/SFML.git GIT_TAG 2.6.x # or master
+	#URL "https://github.com/SFML/SFML/archive/2.6.0.zip"
 )
 FetchContent_MakeAvailable(SFML)
-
-# Select a multi-threaded statically-linked MSVC runtime library for MSVCompiler.
-set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
 
 # Add source to this project's executable.
 set(SOURCES "RP-Lidar_Sfml.cpp")
 add_executable(${PROJECT_NAME} ${SOURCES})
 target_compile_features(${PROJECT_NAME} PRIVATE cxx_std_23)
 set(SFML_BUILD_NETWORK SFML_BUILD_AUDIO FALSE)
+
+# Select a multi-threaded statically-linked runtime when targeting the MSVC.
+if(WIN32)
+	set_property(TARGET ${PROJECT_NAME} PROPERTY
+		MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
+endif()
 
 # Link Dependency: RPLidar-SDK is an imported static full library 
 add_library(rplidar STATIC IMPORTED)
