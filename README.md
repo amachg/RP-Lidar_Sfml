@@ -21,9 +21,9 @@ Tested on:
 * CMake v3.26
 * Slamtec RPLIDAR SDK v2 (targets WIN32)
 * SFML v2.6
-* RPLIDAR model A1M8 (Firmware ver: 1.29) via accompanied usb adapter
+* RPLIDAR model A1M8 (firmware version: 1.29), via accompanied usb adapter
 
-RPLIDAR A1M8 performs a 360° scan, from 15 cm to 12 m.
+RPLIDAR A1M8 performs a 360° scan, from 15 cm to 1200 cm.
 
 Sample Rate: 2, 4, 8 KiloSamples per second, (default in Firmware v1.29 is 8)
 
