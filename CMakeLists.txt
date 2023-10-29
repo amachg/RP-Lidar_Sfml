@@ -22,16 +22,15 @@ if(CMAKE_CXX_COMPILER_ID STREQUAL "MSVC")
 		MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
 endif()
 
-# Link Dependency: RPLidar-SDK is an imported static full library 
+# RPLidar-SDK link dependency imported manually as a static full library 
 add_library(rplidar STATIC IMPORTED)
-
 # The location of the sdk root, on windows or linux
 if(WIN32)
 	set(RPLIDAR_SDK_PATH "C:\\Slamtec\\rplidar_sdk")
 else()
 	set(RPLIDAR_SDK_PATH "/usr/lib/Slamtec/rplidar_sdk")
 endif()
-# Location of the headers, and executable by configuration
+# Location of the headers. And executable by configuration (windows specific)
 set_target_properties(rplidar PROPERTIES 
 	INTERFACE_INCLUDE_DIRECTORIES "${RPLIDAR_SDK_PATH}/sdk/include/"
 	IMPORTED_LOCATION_DEBUG ${RPLIDAR_SDK_PATH}/output/win32/Debug/rplidar_driver${CMAKE_IMPORT_LIBRARY_SUFFIX}
@@ -40,13 +39,12 @@ set_target_properties(rplidar PROPERTIES
 # Link the target executable to both libs
 target_link_libraries(${PROJECT_NAME} PRIVATE rplidar sfml-graphics)
 
-# copy all of the DLLs that a target depends on into its output directory 
-if (WIN32)
+# Copy all DLLs dependencies to the target output directory 
+if (CMAKE_IMPORT_LIBRARY_SUFFIX)
+    message(STATUS "Copying sfml dll to $<TARGET_FILE_DIR:${PROJECT_NAME}>")
     add_custom_command( TARGET ${PROJECT_NAME} POST_BUILD
         COMMAND ${CMAKE_COMMAND} -E copy_if_different
 			$<TARGET_RUNTIME_DLLS:${PROJECT_NAME}>
 			$<TARGET_FILE_DIR:${PROJECT_NAME}>
 		COMMAND_EXPAND_LISTS)
 endif()
-# or
-#install(TARGETS ${PROJECT_NAME} RUNTIME_DEPENDENCIES <TARGET_FILE_DIR:${PROJECT_NAME}> TYPE BIN)
