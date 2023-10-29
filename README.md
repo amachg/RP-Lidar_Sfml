@@ -5,7 +5,7 @@ Also it displays the LIDAR itself, its settings, closest/farthest obstacle arrow
 
 The user can move the axes origin with the keyboard arrow keys and zoom with the mouse wheel.
 
-Developed in C++ without STL* in order to make it easy to be migrated to Arduino.
+Developed in C++ without STL(*) in order to make it easy to be migrated to Arduino.
 Intended use is in Rasbian on a Raspberry Pi-3B+ for obstacle detection of a diy rover.
 
 Author: Tassos, Created in October 2023
