@@ -10,7 +10,7 @@ Developed in C++ without STL (except once) in order to make it easy to migrate t
 Author: Tassos, Created in October 2023
 
 Requires: 
-* Windows	or Linux
+* Windows	or Linux (CMakeLists.txt may need adaptation)
 * CMake build scripts generator https://github.com/Kitware/CMake
 * Slamtec RPLIDAR SDK https://github.com/Slamtec/rplidar_sdk
 * SFML graphic framework (auto installed by cmake) https://github.com/SFML/SFML
