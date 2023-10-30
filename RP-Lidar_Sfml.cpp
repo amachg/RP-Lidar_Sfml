@@ -47,7 +47,6 @@ int main() {
             }
             else if (event.type == sf::Event::MouseWheelMoved) {
                 camera_view.zoom(1 - event.mouseWheel.delta * 0.1f);
-                text_pos = camera_view.getSize().x / 2;
             }
             else if (event.type == sf::Event::KeyPressed) {
                 switch (event.key.code) {
@@ -57,6 +56,8 @@ int main() {
                 case sf::Keyboard::Down: camera_view.move(0, 10);
                 }
             }
+            window.setView(camera_view); // adjust to updated view
+            text_pos = camera_view.getSize() * .5f;
         }
         /// Wait and grab a complete 0-360 degree scan data, asyncly received with startScan.
         auto op_result = lidar_driver->grabScanDataHq(nodes, nodes_count);
@@ -68,7 +69,6 @@ int main() {
         lidar_driver->ascendScanData(nodes, nodes_count);
 
         //Redraw screen
-        window.setView(camera_view);
         window.clear(sf::Color::Blue);
         draw_Scan(window, lidar_driver, nodes, nodes_count);
         window.display(); // Show everything

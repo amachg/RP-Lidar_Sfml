@@ -22,7 +22,7 @@ static const sf::Vertex cross[] = {
 // Text
 static sf::Font font;
 static sf::Text text;
-static auto text_pos = camera_view.getSize().x / 2;
+auto text_pos = camera_view.getSize() *.5f;
 
 void setup_GUI() {
     window.setPosition({ 0, 0 }); // Placement of app window on screen
@@ -128,17 +128,17 @@ void draw_Scan(sf::RenderTarget& window, sl::ILidarDriver*& lidar_driver,
     static auto sample_rate = 1000 / actual_ScanMode.us_per_sample;
     static auto samples_per_round = sample_rate / freq;
     static char text_chars[50];
-    sprintf(text_chars, "Mode: %s, Scan: %2.1f Hz (%u rpm), "
-        "Sample: %2.1f Ksps (%3.2f Kspr)\n", 
+    sprintf(text_chars, "Mode: %s, Rotation freq: %2.1f Hz (%u rpm), "
+        "Sampling rate: %2.1f Ksps (%3.2f Kspr)\n", 
         actual_ScanMode.scan_mode, freq, rpm, sample_rate, samples_per_round);
     text.setString(text_chars);
-    text.setPosition(-text_pos, -text_pos);
+    text.setPosition(-text_pos);
     window.draw(text);
     // Print bounds
-    sprintf(text_chars, "Scan bounds (cm): min=%u @ %f deg, max=%u @ %f deg\n",
+    sprintf(text_chars, "Scan bounds (cm): min: %u @ %.0f deg, max: %u @ %.0f deg\n",
         min_dist_cm, min_dist_theta, max_dist_cm, max_dist_theta);
     text.setString(text_chars);
-    text.setPosition(-text_pos, text_pos - 50);
+    text.setPosition(-text_pos.x, text_pos.y - 50);
     window.draw(text);
 
     //// Draw min / max direction arrows
@@ -153,8 +153,9 @@ bool setup_Lidar(sl::ILidarDriver* & lidar_driver) {
         fprintf(stderr, "Error, insufficent memory. Exiting..\n");
         return false;
     }
-    ///  Create a LIDAR communication channel in Linux or Win32
-    auto com_device = "com4";    // comX for Windows, or "/dev/ttyUSB0" for Linux
+    ///  Create a LIDAR communication channel
+    //auto com_device = "/dev/ttyUSB0"; // Linux
+    auto com_device = "com5";           // Windows
     auto com_channel = sl::createSerialPortChannel(com_device, 115200);
     /// Make connection to the lidar via the serial channel.
     auto op_result = lidar_driver->connect(*com_channel);
