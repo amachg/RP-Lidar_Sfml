@@ -30,4 +30,4 @@ Sample Rate: 2, 4, 8 KiloSamples per second, (default in Firmware v1.29 is 8)
 
 Scan Rate 7.5Hz (=450 RPM) (=1053 samples per round)
 
-*except once :)
+*except once in scanModes :)

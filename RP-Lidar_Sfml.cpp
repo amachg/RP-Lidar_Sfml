@@ -33,7 +33,8 @@ int main() {
         ) return false;
 
     constexpr size_t array_size{ 8192 };
-    sl_lidar_response_measurement_node_hq_t nodes[array_size];
+    //sl_lidar_response_measurement_node_hq_t nodes[array_size];
+    auto nodes = new sl_lidar_response_measurement_node_hq_t(array_size);
     size_t nodes_count{ array_size };
 
     sf::Event event;
@@ -62,7 +63,7 @@ int main() {
         auto op_result = lidar_driver->grabScanDataHq(nodes, nodes_count);
         if (SL_IS_FAIL(op_result)) {
             fprintf(stderr, "Failed to get scan data with error code: %x\n", op_result);
-            return false;
+            break;
         }
         /// Rank the scan data according to its angle value.
         lidar_driver->ascendScanData(nodes, nodes_count);
@@ -75,7 +76,8 @@ int main() {
     }
     /// Stop scan and exit
     lidar_driver->stop();
-    delete lidar_driver;
+    delete lidar_driver;    
+    delete nodes;
     return EXIT_SUCCESS;
 }
 

@@ -76,13 +76,13 @@ void draw_arrow(const float length, const float angle, sf::Vector2f end_pt) {
 
 void draw_Scan(sf::RenderTarget& window, sl::ILidarDriver*& lidar_driver,
     auto& nodes, size_t count) {
-    //// Draw cross
+    /// Draw cross
     window.draw( cross,    2, sf::Lines);
     window.draw(&cross[2], 2, sf::Lines);
     // Draw Lidar device
     window.draw(motor);
     window.draw(lidar);
-    //// Draw theoretical rangle limits
+    /// Draw theoretical rangle limits
     window.draw(low_range);
     window.draw(high_range);
 
@@ -134,17 +134,19 @@ void draw_Scan(sf::RenderTarget& window, sl::ILidarDriver*& lidar_driver,
     text.setString(text_chars);
     text.setPosition(-text_pos, -text_pos);
     window.draw(text);
-    // Print bounds
+    /// Print bounds
     sprintf(text_chars, "Scan bounds (cm): min=%u @ %f deg, max=%u @ %f deg\n",
         min_dist_cm, min_dist_theta, max_dist_cm, max_dist_theta);
     text.setString(text_chars);
     text.setPosition(-text_pos, text_pos - 50);
     window.draw(text);
 
-    //// Draw min / max direction arrows
+    /// Draw min / max direction arrows
     draw_arrow(min_dist_cm, min_dist_theta, min_reflect_pt);
     draw_arrow(max_dist_cm, max_dist_theta, max_reflect_pt);
 }
+
+/// Non graphical functions
 
 bool setup_Lidar(sl::ILidarDriver* & lidar_driver) {
     ///  Create a LIDAR driver
@@ -221,12 +223,12 @@ bool start_Lidar(sl::ILidarDriver*& lidar_driver) {
     /// Use typical scan mode (For last model A1 this is "Sensitivity"),
     /// or select mode (0->Standard, 1->Express, 2->Boost, 3->Sensitivity 4->Stability).
  
-    std::vector<sl::LidarScanMode> scanModes;
-    lidar_driver->getAllSupportedScanModes(scanModes);
+    //std::vector<sl::LidarScanMode> scanModes;
+    //lidar_driver->getAllSupportedScanModes(scanModes);
 
     auto op_result = lidar_driver->
-        //startScan(false /*not force scan*/, true /*Use typical scan mode*/,
-        startScanExpress(false, scanModes[3].id, // Select scan Mode
+        startScan(false /*not force scan*/, true /*Use typical scan mode*/,
+        //startScanExpress(false, scanModes[3].id, // Select scan Mode
         0, &actual_ScanMode);
     if (SL_IS_FAIL(op_result)) {
         fprintf(stderr, "Error, cannot start the scan operation.\n");
