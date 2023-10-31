@@ -5,8 +5,8 @@ project (RPLidar_SFML)
 message (STATUS "Fetching SFML..")
 include(FetchContent)
 FetchContent_Declare( SFML  
-	GIT_REPOSITORY https://github.com/SFML/SFML.git GIT_TAG 2.6.x
-	#URL "https://github.com/SFML/SFML/archive/2.6.0.zip"
+	#GIT_REPOSITORY https://github.com/SFML/SFML.git GIT_TAG 2.6.x
+	URL "https://github.com/SFML/SFML/archive/2.6.0.zip"
 )
 FetchContent_MakeAvailable(SFML)
 
