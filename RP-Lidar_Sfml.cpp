@@ -14,9 +14,10 @@
 *      SFML graphic framework 
 * 
 * RPLIDAR A1M8 performs a 360° scan, in a 0.15-12m disk,
-* Sample Rate (KSa/s) : 2, 4, 8 (=default in Firmware ver: 1.29)
-* Scan Rate 7.5Hz (450 RPM or 1053 samples per round), 
-* can be adjusted 2-10 Hz, by Motor PWM Signal
+* Sample Rate (KSa/s): 2, 4, 8 (=default in Firmware ver: 1.29)
+* Scan Rate: 7.5Hz (450 RPM or 1053 samples per round), 
+* This can be changed from 2 to 10 Hz by directly adjusting 
+* motor PWM signal, e.g. on arduino. Impossible through usb.
 * 
 */
 
@@ -34,7 +35,9 @@ int main() {
 
     constexpr size_t array_size{ 8192 };
     //sl_lidar_response_measurement_node_hq_t nodes[array_size];
-    auto nodes = new sl_lidar_response_measurement_node_hq_t(array_size);
+    auto nodes = new sl_lidar_response_measurement_node_hq_t[array_size];
+    auto dist_accummul = new sl_lidar_response_measurement_node_hq_t[array_size]{};
+    short scans_count{ 0 };
     size_t nodes_count{ array_size };
 
     sf::Event event;
@@ -69,15 +72,31 @@ int main() {
         /// Rank the scan data according to its angle value.
         lidar_driver->ascendScanData(nodes, nodes_count);
 
-        //Redraw screen
+        /// Accummulate
+        if (scans_count++ < 5) {
+            for (size_t i = 0; i < nodes_count; ++i)
+                dist_accummul[i].dist_mm_q2 += nodes[i].dist_mm_q2;
+        }
+        else {
+            /// calc average node distance
+            for (size_t i = 0; i < nodes_count; ++i)
+                nodes[i].dist_mm_q2 = dist_accummul[i].dist_mm_q2 / 5;
+            ///reset array to zero
+            memset(dist_accummul, 0, nodes_count * sizeof(*dist_accummul));
+            scans_count = 0;
+        }
+
+        ///Redraw screen
         window.clear(sf::Color::Blue);
         draw_Scan(window, lidar_driver, nodes, nodes_count);
-        window.display(); // Show everything
+        window.display();
     }
     /// Stop scan and exit
     lidar_driver->stop();
-    delete lidar_driver;    
-    delete nodes;
+    delete lidar_driver;    //delete heap based pointed object by this variable
+    delete[] nodes;
+    delete[] dist_accummul;
+
     return EXIT_SUCCESS;
 }
 

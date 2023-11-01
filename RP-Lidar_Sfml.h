@@ -26,7 +26,7 @@ auto text_pos = camera_view.getSize() *.5f;
 
 void setup_GUI() {
     window.setPosition({ 0, 0 }); // Placement of app window on screen
-    window.setFramerateLimit(5);
+    window.setFramerateLimit(50);
 
     camera_view.setCenter(0, 0);
     //camera_view.setRotation(90);// Normally lidar motor is on the left of the Window
@@ -157,7 +157,7 @@ bool setup_Lidar(sl::ILidarDriver* & lidar_driver) {
     }
     ///  Create a LIDAR communication channel
     //auto com_device = "/dev/ttyUSB0"; // Linux
-    auto com_device = "com5";           // Windows
+    auto com_device = "com4";           // Windows
     auto com_channel = sl::createSerialPortChannel(com_device, 115200);
     /// Make connection to the lidar via the serial channel.
     auto op_result = lidar_driver->connect(*com_channel);
