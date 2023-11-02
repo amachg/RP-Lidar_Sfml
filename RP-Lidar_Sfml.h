@@ -26,7 +26,7 @@ auto text_pos = -camera_view.getSize() *.5f;
 
 void setup_GUI() {
     window.setPosition({ 0, 0 }); // Placement of app window on screen
-    window.setFramerateLimit(5);
+    window.setFramerateLimit(50);
 
     camera_view.setCenter(0, 0);
     //camera_view.setRotation(90);// Normally lidar motor is on the left of the Window
@@ -76,13 +76,13 @@ void draw_arrow(const float length, const float angle, sf::Vector2f end_pt) {
 
 void draw_Scan(sf::RenderTarget& window, sl::ILidarDriver*& lidar_driver,
     auto& nodes, size_t count) {
-    //// Draw cross
+    /// Draw cross
     window.draw( cross,    2, sf::Lines);
     window.draw(&cross[2], 2, sf::Lines);
     // Draw Lidar device
     window.draw(motor);
     window.draw(lidar);
-    //// Draw theoretical rangle limits
+    /// Draw theoretical rangle limits
     window.draw(low_range);
     window.draw(high_range);
 
@@ -141,10 +141,12 @@ void draw_Scan(sf::RenderTarget& window, sl::ILidarDriver*& lidar_driver,
     text.setPosition(text_pos.x, -text_pos.y - 50);
     window.draw(text);
 
-    //// Draw min / max direction arrows
+    /// Draw min / max direction arrows
     draw_arrow(min_dist_cm, min_dist_theta, min_reflect_pt);
     draw_arrow(max_dist_cm, max_dist_theta, max_reflect_pt);
 }
+
+/// Non graphical functions
 
 bool setup_Lidar(sl::ILidarDriver* & lidar_driver) {
     ///  Create a LIDAR driver
@@ -155,7 +157,7 @@ bool setup_Lidar(sl::ILidarDriver* & lidar_driver) {
     }
     ///  Create a LIDAR communication channel
     //auto com_device = "/dev/ttyUSB0"; // Linux
-    auto com_device = "com5";           // Windows
+    auto com_device = "com4";           // Windows
     auto com_channel = sl::createSerialPortChannel(com_device, 115200);
     /// Make connection to the lidar via the serial channel.
     auto op_result = lidar_driver->connect(*com_channel);
@@ -222,12 +224,12 @@ bool start_Lidar(sl::ILidarDriver*& lidar_driver) {
     /// Use typical scan mode (For last model A1 this is "Sensitivity"),
     /// or select mode (0->Standard, 1->Express, 2->Boost, 3->Sensitivity 4->Stability).
  
-    std::vector<sl::LidarScanMode> scanModes;
-    lidar_driver->getAllSupportedScanModes(scanModes);
+    //std::vector<sl::LidarScanMode> scanModes;
+    //lidar_driver->getAllSupportedScanModes(scanModes);
 
     auto op_result = lidar_driver->
-        //startScan(false /*not force scan*/, true /*Use typical scan mode*/,
-        startScanExpress(false, scanModes[3].id, // Select scan Mode
+        startScan(false /*not force scan*/, true /*Use typical scan mode*/,
+        //startScanExpress(false, scanModes[3].id, // Select scan Mode
         0, &actual_ScanMode);
     if (SL_IS_FAIL(op_result)) {
         fprintf(stderr, "Error, cannot start the scan operation.\n");
