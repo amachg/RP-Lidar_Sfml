@@ -34,11 +34,16 @@ int main() {
         ) return false;
 
     constexpr size_t array_size{ 8192 };
+    size_t nodes_count{ array_size };
     //sl_lidar_response_measurement_node_hq_t nodes[array_size];
     auto nodes = new sl_lidar_response_measurement_node_hq_t[array_size];
-    auto dist_accummul = new sl_lidar_response_measurement_node_hq_t[array_size]{};
-    short scans_count{ 0 };
-    size_t nodes_count{ array_size };
+
+    struct {
+        unsigned long dist{ 0 };
+        unsigned short nonzero_count{ 0 };
+    } accummul[array_size];
+    unsigned short scans_count{ 0 };
+    const unsigned short average_over{ 20 };
 
     sf::Event event;
     while (window.isOpen()) {
@@ -73,29 +78,39 @@ int main() {
         lidar_driver->ascendScanData(nodes, nodes_count);
 
         /// Accummulate
-        if (scans_count++ < 5) {
+        //fprintf(stderr, "scans_count: %u\n", scans_count);
+        if (scans_count < average_over) {
             for (size_t i = 0; i < nodes_count; ++i)
-                dist_accummul[i].dist_mm_q2 += nodes[i].dist_mm_q2;
-        }
-        else {
+                if (const auto d_at_i = nodes[i].dist_mm_q2 > 0) {
+                    accummul[i].dist += d_at_i;
+                    accummul[i].nonzero_count++;
+                }
+        } else {
             /// calc average node distance
             for (size_t i = 0; i < nodes_count; ++i)
-                nodes[i].dist_mm_q2 = dist_accummul[i].dist_mm_q2 / 5;
-            ///reset array to zero
-            memset(dist_accummul, 0, nodes_count * sizeof(*dist_accummul));
+                if (accummul[i].nonzero_count > 0) {
+                    accummul[i].dist /= accummul[i].nonzero_count;
+                    accummul[i].nonzero_count = 0;
+            }
+            /// reset accummulator
+            memset(accummul, 0, nodes_count * sizeof(*accummul));
             scans_count = 0;
-        }
 
-        ///Redraw screen
-        window.clear(sf::Color::Blue);
-        draw_Scan(window, lidar_driver, nodes, nodes_count);
-        window.display();
+            /// redraw screen
+            window.clear(sf::Color::Blue);
+            draw_Scan(window, lidar_driver, nodes, nodes_count);
+            window.display();
+        }
+        scans_count++;
+
+        //for (size_t i = 0; i < 10; ++i)
+        //    fprintf(stderr, "%u(%u)\t\t", nodes[i].dist_mm_q2, accummul[i].dist);
+        //fprintf(stderr, "\n\n");
     }
     /// Stop scan and exit
     lidar_driver->stop();
-    delete lidar_driver;    //delete heap based pointed object by this variable
+    delete lidar_driver; // delete the heap-based object pointed by lidar_driver
     delete[] nodes;
-    delete[] dist_accummul;
 
     return EXIT_SUCCESS;
 }

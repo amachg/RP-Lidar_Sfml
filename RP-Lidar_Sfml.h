@@ -26,11 +26,12 @@ auto text_pos = camera_view.getSize() *.5f;
 
 void setup_GUI() {
     window.setPosition({ 0, 0 }); // Placement of app window on screen
-    window.setFramerateLimit(50);
+    //window.setFramerateLimit(10);
 
     camera_view.setCenter(0, 0);
-    //camera_view.setRotation(90);// Normally lidar motor is on the left of the Window
-    camera_view.zoom(1); // >1 means zoom-out
+    /// Normally lidar motor is on the left of the Window.
+    //camera_view.setRotation(90); // Rotate the scene.
+    camera_view.zoom(1); // zoom-factor > 1 means zooming-out
     window.setView(camera_view);
 
     lidar.setFillColor(sf::Color::Black);
