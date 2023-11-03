@@ -22,7 +22,7 @@ static const sf::Vertex cross[] = {
 // Text
 static sf::Font font;
 static sf::Text text;
-auto text_pos = camera_view.getSize() *.5f;
+auto text_pos = -camera_view.getSize() *.5f;
 
 void setup_GUI() {
     window.setPosition({ 0, 0 }); // Placement of app window on screen
@@ -133,13 +133,13 @@ void draw_Scan(sf::RenderTarget& window, sl::ILidarDriver*& lidar_driver,
         "Sampling rate: %2.1f Ksps (%3.2f Kspr)\n", 
         actual_ScanMode.scan_mode, freq, rpm, sample_rate, samples_per_round);
     text.setString(text_chars);
-    text.setPosition(-text_pos);
+    text.setPosition(text_pos);
     window.draw(text);
     // Print bounds
     sprintf(text_chars, "Scan bounds (cm): min: %u @ %.0f deg, max: %u @ %.0f deg\n",
         min_dist_cm, min_dist_theta, max_dist_cm, max_dist_theta);
     text.setString(text_chars);
-    text.setPosition(-text_pos.x, text_pos.y - 50);
+    text.setPosition(text_pos.x, -text_pos.y - 50);
     window.draw(text);
 
     /// Draw min / max direction arrows
