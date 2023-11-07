@@ -12,12 +12,12 @@ static sf::RenderWindow window({ wind_size.x, wind_size.y }, "RP-LIDAR Scan");
 static sf::View camera_view;
 // Graphics 
 static sf::CircleShape lidar(5), motor(2), low_range(15), high_range(1200);
-static const float cross_size = 1.22 * wind_size.x;
+static const float cross_size = 1.21 * wind_size.x;
 static const sf::Vertex cross[] = {
-    sf::Vertex({-cross_size, 0}, sf::Color::Red),
-    sf::Vertex({ cross_size, 0}, sf::Color::Red),
-    sf::Vertex({ 0, -cross_size}, sf::Color::Red),
-    sf::Vertex({ 0, cross_size}, sf::Color::Red)
+    sf::Vertex({-cross_size, 0}, sf::Color::Yellow),
+    sf::Vertex({ cross_size, 0}, sf::Color::Yellow),
+    sf::Vertex({0, -cross_size}, sf::Color::Yellow),
+    sf::Vertex({ 0, cross_size}, sf::Color::Yellow)
 };
 // Text
 static sf::Font font;
@@ -44,6 +44,7 @@ void setup_GUI() {
     low_range.setOutlineThickness(1);
     low_range.setOutlineColor(sf::Color::Yellow);
     low_range.setOrigin(low_range.getRadius(), low_range.getRadius());
+
     high_range.setFillColor(sf::Color::Transparent);
     high_range.setOutlineThickness(1);
     high_range.setOutlineColor(sf::Color::Yellow);
@@ -54,10 +55,29 @@ void setup_GUI() {
     text.setFont(font);
 }
 
-static sl::LidarScanMode actual_ScanMode;
-static float freq;
-static sf::Vector2f prev_reflect;
-static constexpr float pi{ 3.14159265359 };
+void handle_sfml_events() {
+    sf::Event event;
+    while (window.pollEvent(event)) {
+        if (event.type == sf::Event::Closed)
+            window.close();
+        else if (event.type == sf::Event::Resized) {
+            sf::Vector2f new_size(event.size.width, event.size.height);
+            camera_view.setSize(new_size);
+        } else if (event.type == sf::Event::MouseWheelMoved) {
+            camera_view.zoom(1 - event.mouseWheel.delta * 0.1f);
+        } else if (event.type == sf::Event::KeyPressed) {
+            switch (event.key.code) {
+            case sf::Keyboard::Left: camera_view.move(-10, 0); break;
+            case sf::Keyboard::Right:camera_view.move( 10, 0); break;
+            case sf::Keyboard::Up:   camera_view.move( 0, -10); break;
+            case sf::Keyboard::Down: camera_view.move( 0,  10);
+            }
+        }
+        window.setView(camera_view); // adjust to updated view
+        text_pos = -camera_view.getSize() * .5f;
+        text.setCharacterSize(camera_view.getSize().y / wind_size.y * 30); // height in pixels
+    }
+}
 
 void draw_arrow(const float length, const float angle, sf::Vector2f end_pt) {
     sf::RectangleShape rectangle{ {length-2, 1} };
@@ -75,36 +95,32 @@ void draw_arrow(const float length, const float angle, sf::Vector2f end_pt) {
     window.draw(triangle);
 }
 
+static sl::LidarScanMode actual_ScanMode;
+static float freq;
+static sf::Vector2f prev_reflect;
+static constexpr float pi{ 3.14159265359 };
+static auto min_dist_cm{ static_cast<unsigned>(high_range.getRadius()) };
+static auto max_dist_cm{ static_cast<unsigned>(low_range.getRadius()) };
+static float min_dist_theta{}, max_dist_theta{};
+static sf::Vector2f min_reflect_pt, max_reflect_pt;
+
 void draw_Scan(sf::RenderTarget& window, sl::ILidarDriver*& lidar_driver,
     auto& nodes, size_t count) {
-    /// Draw cross
-    window.draw( cross,    2, sf::Lines);
-    window.draw(&cross[2], 2, sf::Lines);
-    // Draw Lidar device
-    window.draw(motor);
-    window.draw(lidar);
-    /// Draw theoretical rangle limits
-    window.draw(low_range);
-    window.draw(high_range);
-
-    auto min_dist_cm{ static_cast<unsigned>(high_range.getRadius()) };
-    auto max_dist_cm{ static_cast<unsigned>(low_range.getRadius()) };
-    float min_dist_theta{}, max_dist_theta{};
-    sf::Vector2f min_reflect_pt, max_reflect_pt;
 
     for (size_t i = 0; i < count; ++i) {
         const auto& node = nodes[i];
         const int brightness = node.quality >> SL_LIDAR_RESP_MEASUREMENT_QUALITY_SHIFT;
         if (brightness > 0) {
-            const auto start_node = node.flag & SL_LIDAR_RESP_HQ_FLAG_SYNCBIT ? "Start " : "      ";
+            const auto start_node = node.flag & SL_LIDAR_RESP_HQ_FLAG_SYNCBIT ?
+                "Start " : "      ";
             const float theta_deg = node.angle_z_q14 * 90.f / 16384;
             const auto distance_mm = node.dist_mm_q2 / 4;
             const auto distance_cm = distance_mm / 10;
 
             /// Calc cartesian coordinates
             const float theta_rad = theta_deg * pi / 180;
-            const sf::Vector2f reflect_pt( cos(theta_rad) * distance_cm,
-                                           sin(theta_rad) * distance_cm );
+            const sf::Vector2f reflect_pt(cos(theta_rad) * distance_cm,
+                sin(theta_rad) * distance_cm);
             /// update min/max distances
             if (distance_cm < min_dist_cm) {
                 min_dist_cm = distance_cm;
@@ -123,6 +139,21 @@ void draw_Scan(sf::RenderTarget& window, sl::ILidarDriver*& lidar_driver,
             prev_reflect = reflect_pt;
         }
     }
+}
+
+void draw_Scantistics(sf::RenderTarget& window, sl::ILidarDriver*& lidar_driver,
+    auto& nodes, size_t count) {
+
+    /// Draw cross
+    window.draw(cross, 2, sf::Lines);
+    window.draw(&cross[2], 2, sf::Lines);
+    // Draw Lidar device
+    window.draw(motor);
+    window.draw(lidar);
+    /// Draw theoretical rangle limits
+    window.draw(low_range);
+    window.draw(high_range);
+
     /// Print statistics. Must have made full scan to give true freq.
     lidar_driver->getFrequency(actual_ScanMode, nodes, count, freq);
     static auto rpm = static_cast<unsigned>(60 * freq);
@@ -139,7 +170,7 @@ void draw_Scan(sf::RenderTarget& window, sl::ILidarDriver*& lidar_driver,
     sprintf(text_chars, "Scan bounds (cm): min: %u @ %.0f deg, max: %u @ %.0f deg\n",
         min_dist_cm, min_dist_theta, max_dist_cm, max_dist_theta);
     text.setString(text_chars);
-    text.setPosition(text_pos.x, -text_pos.y - 50);
+    text.setPosition( text_pos.x, - (text_pos.y + text.getLocalBounds().height) );
     window.draw(text);
 
     /// Draw min / max direction arrows
