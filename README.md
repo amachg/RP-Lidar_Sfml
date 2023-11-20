@@ -2,11 +2,10 @@
 
 This code reads a 2D point-cloud scan-data from a usb connected RPLIDAR Device and displays the output on an SFML display window, in realtime.
 Also it displays the LIDAR itself, its settings, closest/farthest obstacle arrows, low/hight distance limits, and the cartesian axes.
-
 The user can move the axes origin with the keyboard arrow keys and zoom with the mouse wheel.
+Intended use is in Rasbian on a Raspberry Pi-3B+ for obstacle detection of a diy rover.
 
 Developed in C/C++, without STL (except once in scanModes) to facilitate its migration to Arduino.
-Intended use is in Rasbian on a Raspberry Pi-3B+ for obstacle detection of a diy rover.
 
 Author: Tassos, Created in October 2023
 
