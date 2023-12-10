@@ -1,9 +1,10 @@
 # Slamtec RP-LIDAR scan viewer, using SFML, in Windows / Linux
 
-This code reads a 2D point-cloud scan-data from a usb connected RPLIDAR Device and displays the output on an SFML display window, in realtime.
+This code reads a 2D point-cloud scan-data from a USB connected RPLIDAR Device and displays the output on an SFML display window, in realtime.
 Also it displays the LIDAR itself, its settings, closest/farthest obstacle arrows, low/hight distance limits, and the cartesian axes.
 The user can move the axes origin with the keyboard arrow keys and zoom with the mouse wheel.
-Intended use is in Rasbian on a Raspberry Pi-3B+ for obstacle detection of a diy rover.
+Intended use is for obstacle detection of a diy rover, in RasbianOS on a Raspberry Pi-3B+.
+On Raspberry connection is either via USB, or directly via GPIO (both devices use 3.3V level serial port / UART).
 
 Developed in C/C++, without STL (except once in scanModes) to facilitate its migration to Arduino.
 
