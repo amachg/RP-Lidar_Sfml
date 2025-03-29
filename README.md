@@ -7,7 +7,9 @@ Intended use is for obstacle detection of a diy rover I build on a Raspberry Pi-
 On a Raspberry, the LIDAR connection is either via USB, or directly via GPIO (both devices use 3.3V level serial port / UART).
 
 RPLIDAR A1M8 performs a 360° horizontal scan, ranging from 0.15 m up to 1.2 m.
-Sample Rate can be 2, or 4, or 8 KiloSamples per second, (default is 8 in Firmware v1.29)
+
+Sample Rate can be 2, or 4, or 8 KiloSamples per second, (default is 8 in Firmware v1.29).
+
 Scan Rate is 7.5 Hz, aka 450 RPM, aka 1053 Samples per round.
 
 Requires: 
@@ -24,4 +26,5 @@ Tested on:
 * SFML v2.6
 
 Developed in C/C++, without STL (except once in scanModes) to facilitate its future migration to Arduino.
+
 Author: Tassos, Created in October 2023
